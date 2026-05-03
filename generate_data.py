@@ -17,6 +17,21 @@ df = pd.read_csv('zidane_ratings_final.csv')
 df['date'] = pd.to_datetime(df['date']).dt.date
 df['last_match_date'] = pd.to_datetime(df['last_match_date'], errors='coerce').dt.date
 
+def season_is_complete(season_str):
+    """Season YYYY-YY is complete once today is past July 31 of its end year."""
+    end_year = int('20' + season_str[-2:])
+    return date.today() > date(end_year, 7, 31)
+
+# Fix finish labels for any in-progress seasons still in the cached CSV.
+# zidane.py now handles this correctly on a fresh run; this patch covers
+# the window between the code change and the next cron execution.
+for season in df['season'].unique():
+    if not season_is_complete(season):
+        df.loc[(df['season'] == season) & (df['domestic_finish'] == 'Champion'), 'domestic_finish'] = '1st'
+        df.loc[(df['season'] == season) & (df['domestic_finish'] == 'Runner-Up'), 'domestic_finish'] = '2nd'
+        df.loc[df['season'] == season, 'cl_finish'] = ''
+        df.loc[df['season'] == season, 'el_finish'] = ''
+
 def clean(val):
     if pd.isna(val):
         return ''
