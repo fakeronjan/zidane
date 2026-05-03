@@ -285,8 +285,13 @@ function leagueBadge(league) {
     'Bundesliga': 'badge-Bundesliga', 'Serie A': 'badge-SerieA',
     'Ligue 1': 'badge-Ligue1'
   }[league] || 'badge-Other';
-  const short = {'La Liga':'La Liga','Serie A':'Serie A','Ligue 1':'Ligue 1',
-                 'EPL':'EPL','Bundesliga':'BL'}[league] || league;
+  const short = {
+    'EPL':        '🏴󠁧󠁢󠁥󠁮󠁧󠁿 EPL',
+    'La Liga':    '🇪🇸 La Liga',
+    'Bundesliga': '🇩🇪 BL',
+    'Serie A':    '🇮🇹 Serie A',
+    'Ligue 1':    '🇫🇷 Ligue 1',
+  }[league] || league;
   return `<span class="league-badge ${cls}">${short}</span>`;
 }
 
