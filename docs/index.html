@@ -193,12 +193,23 @@
   .loading { color: #888; padding: 20px; text-align: center; font-size: 13px; }
   .error   { color: #c62828; padding: 20px; font-size: 13px; }
 
+  /* Table containers scroll horizontally rather than breaking layout */
+  #standings-table-wrap,
+  #team-table-wrap,
+  #goat-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
   @media (max-width: 600px) {
-    header h1 { font-size: 22px; }
-    td, th { padding: 8px 8px; font-size: 12px; }
-    .last-match-cell { max-width: 120px; }
+    header { padding: 14px 16px 12px; }
+    header h1 { font-size: 20px; letter-spacing: 2px; }
+    nav button { padding: 10px 14px; font-size: 12px; }
+    .tab { padding: 12px; }
+    td, th { padding: 7px 8px; font-size: 12px; }
+    .last-match-cell { max-width: 130px; }
     .controls { flex-direction: column; align-items: stretch; }
     select { min-width: unset; width: 100%; }
+    .rating-bar { display: none; }         /* drop bar on small screens, keep number */
+    /* hide lower-priority columns on mobile */
+    .col-hide-mobile { display: none; }
   }
 </style>
 </head>
@@ -348,8 +359,8 @@ function renderStandings() {
       <td class="last-match-cell">
         <span class="${resultClass(t.last_match)}">${t.last_match || '—'}</span>
       </td>
-      <td style="font-size:11px;color:#888;white-space:nowrap">${t.last_match_date || ''}</td>
-      <td style="font-size:11px">${finishBadge(t.domestic_finish, t.cl_finish, t.el_finish)}</td>
+      <td class="col-hide-mobile" style="font-size:11px;color:#888;white-space:nowrap">${t.last_match_date || ''}</td>
+      <td class="col-hide-mobile" style="font-size:11px">${finishBadge(t.domestic_finish, t.cl_finish, t.el_finish)}</td>
     </tr>`;
   }).join('');
 
@@ -360,7 +371,9 @@ function renderStandings() {
     <table>
       <thead><tr>
         <th>#</th><th>Team</th><th>League</th><th>Rating</th>
-        <th>Last Match</th><th>Date</th><th>Honors</th>
+        <th>Last Match</th>
+        <th class="col-hide-mobile">Date</th>
+        <th class="col-hide-mobile">Honors</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
@@ -448,14 +461,15 @@ function renderTeamTable() {
     </td>
     <td>${ratingBar(g.rating)}</td>
     <td class="rank-cell">${g.rank}</td>
-    <td style="font-size:11px">${finishBadge(g.domestic_finish, g.cl_finish, g.el_finish)}</td>
+    <td class="col-hide-mobile" style="font-size:11px">${finishBadge(g.domestic_finish, g.cl_finish, g.el_finish)}</td>
   </tr>`).join('');
 
   document.getElementById('team-table-wrap').innerHTML = `
     <table>
       <thead><tr>
         <th>Date</th><th>Season</th><th>Last Match</th>
-        <th>Rating</th><th>Rank</th><th>Honors</th>
+        <th>Rating</th><th>Rank</th>
+        <th class="col-hide-mobile">Honors</th>
       </tr></thead>
       <tbody>${tableRows}</tbody>
     </table>`;
@@ -523,14 +537,15 @@ function renderGoat() {
     <td>${t.season}</td>
     <td>${leagueBadge(t.league)}</td>
     <td>${ratingBar(t.rating)}</td>
-    <td style="font-size:11px">${finishBadge(t.domestic_finish, t.cl_finish, t.el_finish)}</td>
+    <td class="col-hide-mobile" style="font-size:11px">${finishBadge(t.domestic_finish, t.cl_finish, t.el_finish)}</td>
   </tr>`).join('');
 
   document.getElementById('goat-table-wrap').innerHTML = `
     <table>
       <thead><tr>
         <th>#</th><th>Team</th><th>Season</th><th>League</th>
-        <th>Rating</th><th>Honors</th>
+        <th>Rating</th>
+        <th class="col-hide-mobile">Honors</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
