@@ -741,16 +741,25 @@ print(f"zidane_standings.csv saved! ({len(standings_df)} rows)")
 
 print("Detecting competition finishes...")
 
+def season_is_complete(season_str):
+    """A season YYYY-YY is complete once today is past July 31 of the end year.
+    This clears the CL final (late May/June) before marking anything done."""
+    end_year = int('20' + season_str[-2:])
+    return date.today() > date(end_year, 7, 31)
+
 domestic_records = []
 cl_records       = []
 el_records       = []
 
-# --- Domestic champion / runner-up ---
-# Top 2 by points (then GD, then GF) in each league each season.
+# --- Domestic leader / champion ---
+# Complete seasons: label top 2 as Champion / Runner-Up.
+# In-progress seasons: label as 1st / 2nd (no trophy awarded yet).
 dom_std = standings_df[standings_df['competition'].isin(FDCO_LEAGUE_CODES.keys())].copy()
 for (season, competition), group in dom_std.groupby(['season', 'competition']):
     group = group.sort_values(['pts', 'gd', 'gf'], ascending=False)
-    for i, label in enumerate(['Champion', 'Runner-Up']):
+    complete = season_is_complete(season)
+    labels = ['Champion', 'Runner-Up'] if complete else ['1st', '2nd']
+    for i, label in enumerate(labels):
         if i < len(group):
             domestic_records.append({
                 'season': season, 'team': group.iloc[i]['team'],
@@ -762,12 +771,17 @@ for (season, competition), group in dom_std.groupby(['season', 'competition']):
 # computed date season. This fixes the 2019-20 Lisbon/Frankfurt bubble:
 # those finals were played in August 2020, which date_to_season labels
 # "2020-21", but they belong to the 2019-20 competition season.
+# Skip any comp_season that is not yet complete — no champion until the
+# final has been played.
 for competition, records, col in [
     ('Champions League', cl_records, 'cl_finish'),
     ('Europa League',    el_records, 'el_finish'),
 ]:
     comp_df = df[df['competition'] == competition].dropna(subset=['comp_season']).copy()
     for comp_season, sdf in comp_df.groupby('comp_season'):
+        if not season_is_complete(comp_season):
+            continue  # final not yet played
+
         last_date = sdf['date'].max()
         final = sdf[sdf['date'] == last_date].iloc[-1]
         home, away, margin = final['home_team'], final['away_team'], final['margin_home']

@@ -163,6 +163,7 @@
   }
   .finish-champion { background: #c8a84b; color: #1a1a2e; }
   .finish-runner   { background: #ddd; color: #444; }
+  .finish-leader   { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
 
   .last-match-cell {
     font-size: 12px;
@@ -296,6 +297,8 @@ function finishBadge(dom, cl, el) {
   if (el === 'Champion')   bits.push(`<span class="finish-badge finish-champion">EL ★</span>`);
   if (dom === 'Champion')  bits.push(`<span class="finish-badge finish-champion">League ★</span>`);
   if (dom === 'Runner-Up') bits.push(`<span class="finish-badge finish-runner">League 2nd</span>`);
+  if (dom === '1st')       bits.push(`<span class="finish-badge finish-leader">League 1st</span>`);
+  if (dom === '2nd')       bits.push(`<span class="finish-badge finish-leader">League 2nd</span>`);
   return bits.join(' ');
 }
 
