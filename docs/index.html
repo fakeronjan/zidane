@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZIDANE — European Club Soccer Power Rankings</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f8f8f6;
+    color: #1a1a1a;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  header {
+    background: #1a1a2e;
+    color: #fff;
+    padding: 20px 24px 16px;
+  }
+  header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    color: #c8a84b;
+  }
+  header p.subtitle {
+    font-size: 12px;
+    color: #aaa;
+    margin-top: 2px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  header p.updated {
+    font-size: 11px;
+    color: #666;
+    margin-top: 6px;
+  }
+
+  nav {
+    background: #16213e;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+  }
+  nav button {
+    background: none;
+    border: none;
+    color: #aaa;
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    border-bottom: 3px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  nav button:hover { color: #fff; }
+  nav button.active { color: #c8a84b; border-bottom-color: #c8a84b; }
+
+  .tab { display: none; padding: 16px; max-width: 1100px; margin: 0 auto; }
+  .tab.active { display: block; }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+    align-items: center;
+  }
+  select {
+    padding: 7px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    background: #fff;
+    cursor: pointer;
+    min-width: 160px;
+  }
+  .count-label {
+    font-size: 12px;
+    color: #888;
+    margin-left: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  thead th {
+    background: #1a1a2e;
+    color: #c8a84b;
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  tbody tr { border-bottom: 1px solid #f0f0f0; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #fafafa; }
+  tbody td {
+    padding: 9px 12px;
+    font-size: 13px;
+    vertical-align: middle;
+  }
+
+  .rank-cell {
+    font-weight: 700;
+    color: #888;
+    width: 36px;
+    text-align: right;
+  }
+  .team-cell { font-weight: 600; }
+  .league-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+  .badge-EPL        { background: #3d0f70; color: #fff; }
+  .badge-LaLiga     { background: #c8102e; color: #fff; }
+  .badge-Bundesliga { background: #d20515; color: #fff; }
+  .badge-SerieA     { background: #003899; color: #fff; }
+  .badge-Ligue1     { background: #003f8a; color: #fff; }
+  .badge-Other      { background: #555; color: #fff; }
+
+  .rating-cell {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #1a1a2e;
+  }
+  .rating-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .rating-bar {
+    height: 6px;
+    background: #c8a84b;
+    border-radius: 3px;
+    min-width: 2px;
+  }
+
+  .finish-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 5px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .finish-champion { background: #c8a84b; color: #1a1a2e; }
+  .finish-runner   { background: #ddd; color: #444; }
+
+  .last-match-cell {
+    font-size: 12px;
+    color: #555;
+    max-width: 240px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .result-W { color: #2e7d32; font-weight: 700; }
+  .result-L { color: #c62828; font-weight: 700; }
+  .result-D { color: #f57f17; font-weight: 700; }
+
+  /* Season chart */
+  #chart-wrap {
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  #season-chart {
+    width: 100%;
+    height: 160px;
+    display: block;
+  }
+
+  .loading { color: #888; padding: 20px; text-align: center; font-size: 13px; }
+  .error   { color: #c62828; padding: 20px; font-size: 13px; }
+
+  @media (max-width: 600px) {
+    header h1 { font-size: 22px; }
+    td, th { padding: 8px 8px; font-size: 12px; }
+    .last-match-cell { max-width: 120px; }
+    .controls { flex-direction: column; align-items: stretch; }
+    select { min-width: unset; width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ZIDANE</h1>
+  <p class="subtitle">European Club Soccer Power Rankings</p>
+  <p class="updated" id="last-updated">Loading...</p>
+</header>
+
+<nav>
+  <button class="active" data-tab="standings">Standings</button>
+  <button data-tab="team-season">Team Season</button>
+  <button data-tab="goat">GOAT Table</button>
+</nav>
+
+<!-- ── STANDINGS ────────────────────────────────────────────────────────── -->
+<div id="standings" class="tab active">
+  <div class="controls">
+    <select id="league-filter">
+      <option value="all">All Leagues</option>
+      <option value="EPL">EPL</option>
+      <option value="La Liga">La Liga</option>
+      <option value="Bundesliga">Bundesliga</option>
+      <option value="Serie A">Serie A</option>
+      <option value="Ligue 1">Ligue 1</option>
+    </select>
+    <span class="count-label" id="standings-count"></span>
+  </div>
+  <div id="standings-table-wrap"><p class="loading">Loading standings...</p></div>
+</div>
+
+<!-- ── TEAM SEASON ──────────────────────────────────────────────────────── -->
+<div id="team-season" class="tab">
+  <div class="controls">
+    <select id="team-select"><option>Loading teams...</option></select>
+    <select id="season-select"><option value="all">All Seasons</option></select>
+  </div>
+  <div id="chart-wrap" style="display:none">
+    <svg id="season-chart"></svg>
+  </div>
+  <div id="team-table-wrap"><p class="loading">Select a team above.</p></div>
+</div>
+
+<!-- ── GOAT TABLE ───────────────────────────────────────────────────────── -->
+<div id="goat" class="tab">
+  <div class="controls">
+    <select id="goat-league-filter">
+      <option value="all">All Leagues</option>
+      <option value="EPL">EPL</option>
+      <option value="La Liga">La Liga</option>
+      <option value="Bundesliga">Bundesliga</option>
+      <option value="Serie A">Serie A</option>
+      <option value="Ligue 1">Ligue 1</option>
+    </select>
+  </div>
+  <div id="goat-table-wrap"><p class="loading">Loading GOAT table...</p></div>
+</div>
+
+<script>
+const BASE = './data';
+let standingsData = null;
+let goatData      = null;
+let teamsIndex    = null;
+let teamCache     = {};
+
+// ── Utilities ───────────────────────────────────────────────────────────────
+function leagueBadge(league) {
+  const cls = {
+    'EPL': 'badge-EPL', 'La Liga': 'badge-LaLiga',
+    'Bundesliga': 'badge-Bundesliga', 'Serie A': 'badge-SerieA',
+    'Ligue 1': 'badge-Ligue1'
+  }[league] || 'badge-Other';
+  const short = {'La Liga':'La Liga','Serie A':'Serie A','Ligue 1':'Ligue 1',
+                 'EPL':'EPL','Bundesliga':'BL'}[league] || league;
+  return `<span class="league-badge ${cls}">${short}</span>`;
+}
+
+function finishBadge(dom, cl, el) {
+  const bits = [];
+  if (cl === 'Champion')   bits.push(`<span class="finish-badge finish-champion">CL ★</span>`);
+  if (cl === 'Runner-Up')  bits.push(`<span class="finish-badge finish-runner">CL 2nd</span>`);
+  if (el === 'Champion')   bits.push(`<span class="finish-badge finish-champion">EL ★</span>`);
+  if (dom === 'Champion')  bits.push(`<span class="finish-badge finish-champion">League ★</span>`);
+  if (dom === 'Runner-Up') bits.push(`<span class="finish-badge finish-runner">League 2nd</span>`);
+  return bits.join(' ');
+}
+
+function resultClass(match) {
+  if (!match) return '';
+  const first = match[0];
+  if (first === 'W') return 'result-W';
+  if (first === 'L') return 'result-L';
+  if (first === 'D') return 'result-D';
+  return '';
+}
+
+const MAX_RATING = 3.0;
+
+function ratingBar(rating) {
+  const pct = Math.max(0, Math.min(100, (rating / MAX_RATING) * 100));
+  return `<div class="rating-bar-wrap">
+    <span class="rating-cell">${rating.toFixed(3)}</span>
+    <div class="rating-bar" style="width:${pct.toFixed(1)}%"></div>
+  </div>`;
+}
+
+// ── Tab switching ────────────────────────────────────────────────────────────
+document.querySelectorAll('nav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ── Standings ────────────────────────────────────────────────────────────────
+async function loadStandings() {
+  try {
+    const res = await fetch(`${BASE}/current_standings.json`);
+    standingsData = await res.json();
+    document.getElementById('last-updated').textContent =
+      `Last updated: ${standingsData.updated}`;
+    renderStandings();
+  } catch(e) {
+    document.getElementById('standings-table-wrap').innerHTML =
+      `<p class="error">Could not load standings.</p>`;
+  }
+}
+
+function renderStandings() {
+  const league = document.getElementById('league-filter').value;
+  let teams = standingsData.teams;
+  if (league !== 'all') teams = teams.filter(t => t.league === league);
+
+  // Re-rank after filtering
+  let displayRank = 1;
+  const rows = teams.map(t => {
+    const rank = league === 'all' ? t.rank : displayRank++;
+    return `<tr>
+      <td class="rank-cell">${rank}</td>
+      <td class="team-cell">${t.team}</td>
+      <td>${leagueBadge(t.league)}</td>
+      <td>${ratingBar(t.rating)}</td>
+      <td class="last-match-cell">
+        <span class="${resultClass(t.last_match)}">${t.last_match || '—'}</span>
+      </td>
+      <td style="font-size:11px;color:#888;white-space:nowrap">${t.last_match_date || ''}</td>
+      <td style="font-size:11px">${finishBadge(t.domestic_finish, t.cl_finish, t.el_finish)}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('standings-count').textContent =
+    `${teams.length} team${teams.length !== 1 ? 's' : ''}`;
+
+  document.getElementById('standings-table-wrap').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>#</th><th>Team</th><th>League</th><th>Rating</th>
+        <th>Last Match</th><th>Date</th><th>Honors</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+document.getElementById('league-filter').addEventListener('change', renderStandings);
+
+// ── Team Season ──────────────────────────────────────────────────────────────
+async function loadTeamsIndex() {
+  try {
+    const res = await fetch(`${BASE}/teams_index.json`);
+    teamsIndex = await res.json();
+    const sel = document.getElementById('team-select');
+    sel.innerHTML = '<option value="">— Select a team —</option>';
+    let currentLeague = '';
+    let grp;
+    teamsIndex.forEach(t => {
+      if (t.league !== currentLeague) {
+        if (grp) sel.appendChild(grp);
+        grp = document.createElement('optgroup');
+        grp.label = t.league;
+        currentLeague = t.league;
+      }
+      const opt = document.createElement('option');
+      opt.value = t.slug;
+      opt.textContent = t.name;
+      grp.appendChild(opt);
+    });
+    if (grp) sel.appendChild(grp);
+  } catch(e) {
+    document.getElementById('team-select').innerHTML =
+      '<option>Could not load teams</option>';
+  }
+}
+
+async function loadTeam(slug) {
+  if (!slug) return;
+  if (!teamCache[slug]) {
+    document.getElementById('team-table-wrap').innerHTML =
+      '<p class="loading">Loading team data...</p>';
+    try {
+      const res = await fetch(`${BASE}/teams/${slug}.json`);
+      teamCache[slug] = await res.json();
+    } catch(e) {
+      document.getElementById('team-table-wrap').innerHTML =
+        '<p class="error">Could not load team data.</p>';
+      return;
+    }
+  }
+  const data = teamCache[slug];
+  const seasons = Object.keys(data.seasons).sort().reverse();
+  const seasonSel = document.getElementById('season-select');
+  seasonSel.innerHTML = '<option value="all">All Seasons</option>';
+  seasons.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s;
+    opt.textContent = s;
+    seasonSel.appendChild(opt);
+  });
+  renderTeamTable();
+}
+
+function renderTeamTable() {
+  const slug = document.getElementById('team-select').value;
+  if (!slug || !teamCache[slug]) return;
+  const data = teamCache[slug];
+  const seasonFilter = document.getElementById('season-select').value;
+
+  let rows = [];
+  const seasons = Object.keys(data.seasons).sort();
+  seasons.forEach(s => {
+    if (seasonFilter !== 'all' && s !== seasonFilter) return;
+    data.seasons[s].forEach(g => rows.push({...g, season: s}));
+  });
+
+  // Chart
+  drawChart(rows);
+
+  // Table (reverse chronological)
+  const tableRows = [...rows].reverse().map(g => `<tr>
+    <td style="white-space:nowrap;color:#888;font-size:12px">${g.date}</td>
+    <td style="font-size:11px;color:#555">${g.season}</td>
+    <td class="last-match-cell">
+      <span class="${resultClass(g.last_match)}">${g.last_match || '—'}</span>
+    </td>
+    <td>${ratingBar(g.rating)}</td>
+    <td class="rank-cell">${g.rank}</td>
+    <td style="font-size:11px">${finishBadge(g.domestic_finish, g.cl_finish, g.el_finish)}</td>
+  </tr>`).join('');
+
+  document.getElementById('team-table-wrap').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Date</th><th>Season</th><th>Last Match</th>
+        <th>Rating</th><th>Rank</th><th>Honors</th>
+      </tr></thead>
+      <tbody>${tableRows}</tbody>
+    </table>`;
+}
+
+function drawChart(rows) {
+  const wrap = document.getElementById('chart-wrap');
+  if (rows.length < 2) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+
+  const svg = document.getElementById('season-chart');
+  const W = svg.parentElement.clientWidth - 32;
+  const H = 160;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  const ratings = rows.map(r => r.rating);
+  const minR = Math.min(...ratings) - 0.1;
+  const maxR = Math.max(...ratings) + 0.1;
+
+  const px = (i) => (i / (rows.length - 1)) * (W - 20) + 10;
+  const py = (r) => H - 20 - ((r - minR) / (maxR - minR)) * (H - 30);
+
+  const points = rows.map((r, i) => `${px(i).toFixed(1)},${py(r.rating).toFixed(1)}`).join(' ');
+  const areaBot = `${px(rows.length-1).toFixed(1)},${H-20} ${px(0).toFixed(1)},${H-20}`;
+
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#c8a84b" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="#c8a84b" stop-opacity="0.03"/>
+      </linearGradient>
+    </defs>
+    <line x1="10" y1="${(H-20).toFixed(1)}" x2="${(W-10).toFixed(1)}" y2="${(H-20).toFixed(1)}"
+          stroke="#eee" stroke-width="1"/>
+    <polygon points="${points} ${areaBot}" fill="url(#chartGrad)"/>
+    <polyline points="${points}" fill="none" stroke="#c8a84b" stroke-width="2" stroke-linejoin="round"/>`;
+}
+
+document.getElementById('team-select').addEventListener('change', e => {
+  loadTeam(e.target.value);
+});
+document.getElementById('season-select').addEventListener('change', renderTeamTable);
+
+// ── GOAT Table ────────────────────────────────────────────────────────────────
+async function loadGoat() {
+  try {
+    const res = await fetch(`${BASE}/goat_teams.json`);
+    goatData = await res.json();
+    renderGoat();
+  } catch(e) {
+    document.getElementById('goat-table-wrap').innerHTML =
+      `<p class="error">Could not load GOAT table.</p>`;
+  }
+}
+
+function renderGoat() {
+  const league = document.getElementById('goat-league-filter').value;
+  let teams = goatData;
+  if (league !== 'all') teams = teams.filter(t => t.league === league);
+
+  let displayRank = 1;
+  const rows = teams.map(t => `<tr>
+    <td class="rank-cell">${displayRank++}</td>
+    <td class="team-cell">${t.team}</td>
+    <td>${t.season}</td>
+    <td>${leagueBadge(t.league)}</td>
+    <td>${ratingBar(t.rating)}</td>
+    <td style="font-size:11px">${finishBadge(t.domestic_finish, t.cl_finish, t.el_finish)}</td>
+  </tr>`).join('');
+
+  document.getElementById('goat-table-wrap').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>#</th><th>Team</th><th>Season</th><th>League</th>
+        <th>Rating</th><th>Honors</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+document.getElementById('goat-league-filter').addEventListener('change', renderGoat);
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+loadStandings();
+loadTeamsIndex();
+loadGoat();
+</script>
+</body>
+</html>
