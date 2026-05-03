@@ -34,32 +34,33 @@ def date_to_season(d):
 # Cumulative W-D-L per team per season, computed from raw game data.
 # Shootout winner counts as a W (same logic as CL/EL knockouts).
 print("Computing season records...")
+DOMESTIC_LEAGUES = {'EPL', 'La Liga', 'Bundesliga', 'Serie A', 'Ligue 1'}
+
 games_raw = pd.read_csv('all_club_games.csv', parse_dates=['date'])
 games_raw['home_score'] = pd.to_numeric(games_raw['home_score'], errors='coerce')
 games_raw['away_score'] = pd.to_numeric(games_raw['away_score'], errors='coerce')
 games_raw = games_raw.dropna(subset=['home_score', 'away_score']).copy()
 games_raw['season'] = games_raw['date'].apply(date_to_season)
 
+# League games only for the record column
+games_dom = games_raw[games_raw['competition'].isin(DOMESTIC_LEAGUES)].copy()
+
 def result_for(row, side):
     gf = row['home_score'] if side == 'home' else row['away_score']
     ga = row['away_score'] if side == 'home' else row['home_score']
-    team = row['home_team'] if side == 'home' else row['away_team']
     if gf > ga:
         return 'W'
     if ga > gf:
         return 'L'
-    sw = row.get('shootout_winner')
-    if pd.notna(sw) and sw != '':
-        return 'W' if sw == team else 'L'
     return 'D'
 
-home_g = games_raw[['date', 'season', 'home_team']].copy()
-home_g['team']   = games_raw['home_team']
-home_g['result'] = games_raw.apply(lambda r: result_for(r, 'home'), axis=1)
+home_g = games_dom[['date', 'season', 'home_team']].copy()
+home_g['team']   = games_dom['home_team']
+home_g['result'] = games_dom.apply(lambda r: result_for(r, 'home'), axis=1)
 
-away_g = games_raw[['date', 'season', 'away_team']].copy()
-away_g['team']   = games_raw['away_team']
-away_g['result'] = games_raw.apply(lambda r: result_for(r, 'away'), axis=1)
+away_g = games_dom[['date', 'season', 'away_team']].copy()
+away_g['team']   = games_dom['away_team']
+away_g['result'] = games_dom.apply(lambda r: result_for(r, 'away'), axis=1)
 
 all_g = pd.concat([
     home_g[['date', 'season', 'team', 'result']],
