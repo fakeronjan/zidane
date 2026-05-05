@@ -169,6 +169,8 @@
     border-radius: 3px;
     top: 0;
   }
+  .bar-pos { background: #1a6b8a; }
+  .bar-neg { background: #ff6eb4; }
 
   .finish-badge {
     font-size: 10px;
@@ -391,7 +393,7 @@ function ratingBar(rating) {
     <span class="rating-cell">${rating.toFixed(3)}</span>
     <div class="rating-bar-track">
       <div class="rating-bar-center-line"></div>
-      <div class="rating-bar-fill" style="left:${leftPct.toFixed(1)}%;width:${widthPct.toFixed(1)}%;background:${rating >= 0 ? '#1a6b8a' : '#ff6eb4'}"></div>
+      <div class="rating-bar-fill ${rating >= 0 ? 'bar-pos' : 'bar-neg'}" style="left:${leftPct.toFixed(1)}%;width:${widthPct.toFixed(1)}%"></div>
     </div>
   </div>`;
 }
@@ -613,31 +615,21 @@ function drawChart(rows) {
   const px = (i) => (i / (rows.length - 1)) * (W - 20) + 10;
   const py = (r) => H - 20 - ((r - CHART_MIN) / (CHART_MAX - CHART_MIN)) * (H - 30);
 
-  const zeroY   = py(0);
-  const zeroPct = (zeroY / H * 100).toFixed(2);
-
+  const zeroY = py(0);
   const points = rows.map((r, i) => `${px(i).toFixed(1)},${py(r.rating).toFixed(1)}`).join(' ');
-  const areaBot = `${px(rows.length-1).toFixed(1)},${H-20} ${px(0).toFixed(1)},${H-20}`;
 
+  // gradientUnits="userSpaceOnUse" + real pixel coords so the split lands
+  // exactly on the zero line regardless of the data range.
   svg.innerHTML = `
     <defs>
-      <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%"         stop-color="#1a6b8a"/>
-        <stop offset="${zeroPct}%" stop-color="#1a6b8a"/>
-        <stop offset="${zeroPct}%" stop-color="#ff6eb4"/>
-        <stop offset="100%"       stop-color="#ff6eb4"/>
-      </linearGradient>
-      <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%"         stop-color="#1a6b8a" stop-opacity="0.18"/>
-        <stop offset="${zeroPct}%" stop-color="#1a6b8a" stop-opacity="0.03"/>
-        <stop offset="${zeroPct}%" stop-color="#ff6eb4" stop-opacity="0.03"/>
-        <stop offset="100%"       stop-color="#ff6eb4" stop-opacity="0.15"/>
+      <linearGradient id="lineGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="${H}">
+        <stop offset="${(zeroY / H - 0.0001).toFixed(4)}" stop-color="#1a6b8a"/>
+        <stop offset="${(zeroY / H + 0.0001).toFixed(4)}" stop-color="#ff6eb4"/>
       </linearGradient>
     </defs>
     <line x1="10" y1="${zeroY.toFixed(1)}" x2="${(W-10).toFixed(1)}" y2="${zeroY.toFixed(1)}"
           stroke="#ccc" stroke-width="1" stroke-dasharray="4,3"/>
-    <polygon points="${points} ${areaBot}" fill="url(#areaGrad)"/>
-    <polyline points="${points}" fill="none" stroke="url(#lineGrad)" stroke-width="2" stroke-linejoin="round"/>`;
+    <polyline points="${points}" fill="none" stroke="url(#lineGrad)" stroke-width="2.5" stroke-linejoin="round"/>`;
 }
 
 document.getElementById('team-select').addEventListener('change', e => {
