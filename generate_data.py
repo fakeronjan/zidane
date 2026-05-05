@@ -290,8 +290,13 @@ for season in all_seasons:
     with open(f'docs/data/seasons/{season}.json', 'w') as f:
         json.dump({'season': season, 'snapshots': snapshots}, f, separators=(',', ':'))
 
+seasons_meta = {
+    'seasons':    list(reversed(all_seasons)),
+    'first_date': str(games_raw['date'].min().date()),
+    'last_date':  str(games_raw['date'].max().date()),
+}
 with open('docs/data/seasons_index.json', 'w') as f:
-    json.dump(list(reversed(all_seasons)), f, separators=(',', ':'))
+    json.dump(seasons_meta, f, separators=(',', ':'))
 
 # ── 5. Champions table ────────────────────────────────────────────────────────
 print("Writing champions.json...")

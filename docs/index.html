@@ -402,17 +402,24 @@ document.querySelectorAll('nav button').forEach(btn => {
 });
 
 // ── Standings ────────────────────────────────────────────────────────────────
+function fmtDate(ds) {
+  const d = new Date(ds + 'T00:00:00');
+  return d.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'});
+}
+
 async function initStandings() {
   try {
-    const res = await fetch(`${BASE}/seasons_index.json`);
-    const seasons = await res.json();
+    const res  = await fetch(`${BASE}/seasons_index.json`);
+    const meta = await res.json();
+    document.getElementById('last-updated').textContent =
+      `Ratings include games from ${fmtDate(meta.first_date)} to ${fmtDate(meta.last_date)}`;
     const sel = document.getElementById('season-filter');
-    seasons.forEach(s => {
+    meta.seasons.forEach(s => {
       const opt = document.createElement('option');
       opt.value = s; opt.textContent = s;
       sel.appendChild(opt);
     });
-    await loadSeason(seasons[0]);
+    await loadSeason(meta.seasons[0]);
   } catch(e) {
     document.getElementById('standings-table-wrap').innerHTML =
       `<p class="error">Could not load standings.</p>`;
@@ -441,7 +448,6 @@ async function loadSeason(season) {
 
 function selectSnapshot(date) {
   currentSnapshot = currentSeasonData.snapshots.find(s => s.date === date);
-  document.getElementById('last-updated').textContent = `Standings as of: ${currentSnapshot.date}`;
   document.getElementById('date-filter').value = date;
   renderStandings();
 }
