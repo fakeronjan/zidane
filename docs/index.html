@@ -212,6 +212,13 @@
   .error   { color: #c62828; padding: 20px; font-size: 13px; }
   .data-note { font-size: 11px; color: #888; margin-bottom: 10px; }
 
+  /* League History table */
+  .col-champ  { background: #fffdf3; }
+  .col-ru     { background: #fafafa; }
+  .season-cell { font-weight: 700; color: #1a1a2e; white-space: nowrap; }
+  .divider-col { width: 4px; background: #e8e8e8; padding: 0; }
+  #history-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
   /* Table containers scroll horizontally rather than breaking layout */
   #standings-table-wrap,
   #team-table-wrap,
@@ -243,6 +250,7 @@
 <nav>
   <button class="active" data-tab="standings">Standings</button>
   <button data-tab="team-summary">Team Summary</button>
+  <button data-tab="league-history">League History</button>
   <button data-tab="goat">GOAT Table</button>
 </nav>
 
@@ -282,6 +290,21 @@
     <svg id="season-chart"></svg>
   </div>
   <div id="team-table-wrap"><p class="loading">Select a team above.</p></div>
+</div>
+
+<!-- ── LEAGUE HISTORY ────────────────────────────────────────────────────── -->
+<div id="league-history" class="tab">
+  <div class="controls">
+    <select id="history-league-filter">
+      <option value="">— Select a league —</option>
+      <option value="EPL">🏴󠁧󠁢󠁥󠁮󠁧󠁿 EPL</option>
+      <option value="La Liga">🇪🇸 La Liga</option>
+      <option value="Bundesliga">🇩🇪 Bundesliga</option>
+      <option value="Serie A">🇮🇹 Serie A</option>
+      <option value="Ligue 1">🇫🇷 Ligue 1</option>
+    </select>
+  </div>
+  <div id="history-table-wrap"><p class="loading">Select a league above.</p></div>
 </div>
 
 <!-- ── GOAT TABLE ───────────────────────────────────────────────────────── -->
@@ -603,6 +626,72 @@ document.getElementById('team-select').addEventListener('change', e => {
 });
 document.getElementById('season-select').addEventListener('change', renderTeamTable);
 
+// ── League History ────────────────────────────────────────────────────────────
+let championsData = null;
+
+async function loadChampions() {
+  try {
+    const res = await fetch(`${BASE}/champions.json`);
+    championsData = await res.json();
+  } catch(e) {
+    document.getElementById('history-table-wrap').innerHTML =
+      `<p class="error">Could not load league history.</p>`;
+  }
+}
+
+function renderLeagueHistory(league) {
+  if (!championsData || !league) return;
+  const entries = championsData[league] || [];
+  if (!entries.length) {
+    document.getElementById('history-table-wrap').innerHTML =
+      `<p class="loading">No data for this league.</p>`;
+    return;
+  }
+
+  function honorBadges(cl, el) {
+    const bits = [];
+    if (cl === 'Champion')  bits.push(`<span class="finish-badge finish-champion">CL ★</span>`);
+    if (cl === 'Runner-Up') bits.push(`<span class="finish-badge finish-runner">CL 2nd</span>`);
+    if (el === 'Champion')  bits.push(`<span class="finish-badge finish-champion">EL ★</span>`);
+    return bits.join(' ');
+  }
+
+  function teamCell(t, bg) {
+    if (!t) return `<td class="${bg}" colspan="3">—</td>`;
+    const honors = honorBadges(t.cl_finish, t.el_finish);
+    return `
+      <td class="${bg} team-cell" style="white-space:nowrap">${t.team}${honors ? ' ' + honors : ''}</td>
+      <td class="${bg} rating-cell" style="font-variant-numeric:tabular-nums">${t.rating.toFixed(3)}</td>
+      <td class="${bg} col-hide-mobile" style="font-variant-numeric:tabular-nums;white-space:nowrap">${t.record}</td>`;
+  }
+
+  const rows = entries.map(e => `<tr>
+    <td class="season-cell">${e.season}</td>
+    ${teamCell(e.champion,  'col-champ')}
+    <td class="divider-col"></td>
+    ${teamCell(e.runner_up, 'col-ru')}
+  </tr>`).join('');
+
+  document.getElementById('history-table-wrap').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Season</th>
+        <th class="col-champ">Champion</th>
+        <th class="col-champ">Rating</th>
+        <th class="col-champ col-hide-mobile">Record</th>
+        <th class="divider-col"></th>
+        <th class="col-ru">Runner-Up</th>
+        <th class="col-ru">Rating</th>
+        <th class="col-ru col-hide-mobile">Record</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+document.getElementById('history-league-filter').addEventListener('change', e => {
+  renderLeagueHistory(e.target.value);
+});
+
 // ── GOAT Table ────────────────────────────────────────────────────────────────
 async function loadGoat() {
   try {
@@ -646,6 +735,7 @@ document.getElementById('goat-league-filter').addEventListener('change', renderG
 // ── Init ─────────────────────────────────────────────────────────────────────
 initStandings();
 loadTeamsIndex();
+loadChampions();
 loadGoat();
 </script>
 </body>
