@@ -16,7 +16,7 @@
   }
 
   header {
-    background: #0d3b3b;
+    background: #1a6b8a;
     color: #fff;
     padding: 20px 24px 16px;
   }
@@ -40,7 +40,7 @@
   }
 
   nav {
-    background: #092d2d;
+    background: #155a75;
     display: flex;
     gap: 0;
     overflow-x: auto;
@@ -95,7 +95,7 @@
     box-shadow: 0 1px 4px rgba(0,0,0,0.08);
   }
   thead th {
-    background: #0d3b3b;
+    background: #1a6b8a;
     color: #ff6eb4;
     padding: 10px 12px;
     text-align: left;
@@ -140,7 +140,7 @@
   .rating-cell {
     font-weight: 700;
     font-variant-numeric: tabular-nums;
-    color: #0d3b3b;
+    color: #1a6b8a;
   }
   .rating-bar-wrap {
     display: flex;
@@ -178,7 +178,7 @@
     border-radius: 3px;
     white-space: nowrap;
   }
-  .finish-champion { background: #c8a84b; color: #0d3b3b; }
+  .finish-champion { background: #c8a84b; color: #1a6b8a; }
   .finish-runner   { background: #ddd; color: #444; }
   .finish-leader   { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
 
@@ -215,7 +215,7 @@
   /* League History table */
   .col-champ  { background: #fffdf3; }
   .col-ru     { background: #fafafa; }
-  .season-cell { font-weight: 700; color: #0d3b3b; white-space: nowrap; }
+  .season-cell { font-weight: 700; color: #1a6b8a; white-space: nowrap; }
   .divider-col { width: 4px; background: #e8e8e8; padding: 0; }
   #history-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
@@ -611,14 +611,14 @@ function drawChart(rows) {
   svg.innerHTML = `
     <defs>
       <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%"         stop-color="#0d3b3b"/>
-        <stop offset="${zeroPct}%" stop-color="#0d3b3b"/>
+        <stop offset="0%"         stop-color="#1a6b8a"/>
+        <stop offset="${zeroPct}%" stop-color="#1a6b8a"/>
         <stop offset="${zeroPct}%" stop-color="#ff6eb4"/>
         <stop offset="100%"       stop-color="#ff6eb4"/>
       </linearGradient>
       <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%"         stop-color="#0d3b3b" stop-opacity="0.18"/>
-        <stop offset="${zeroPct}%" stop-color="#0d3b3b" stop-opacity="0.03"/>
+        <stop offset="0%"         stop-color="#1a6b8a" stop-opacity="0.18"/>
+        <stop offset="${zeroPct}%" stop-color="#1a6b8a" stop-opacity="0.03"/>
         <stop offset="${zeroPct}%" stop-color="#ff6eb4" stop-opacity="0.03"/>
         <stop offset="100%"       stop-color="#ff6eb4" stop-opacity="0.15"/>
       </linearGradient>
