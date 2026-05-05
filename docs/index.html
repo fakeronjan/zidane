@@ -249,6 +249,8 @@
 <!-- ── STANDINGS ────────────────────────────────────────────────────────── -->
 <div id="standings" class="tab active">
   <div class="controls">
+    <select id="season-filter"></select>
+    <select id="date-filter" style="min-width:200px"></select>
     <select id="league-filter">
       <option value="all">All Leagues</option>
       <option value="EPL">EPL</option>
@@ -300,10 +302,11 @@
 
 <script>
 const BASE = './data';
-let standingsData = null;
-let goatData      = null;
-let teamsIndex    = null;
-let teamCache     = {};
+let currentSeasonData = null;
+let currentSnapshot   = null;
+let goatData          = null;
+let teamsIndex        = null;
+let teamCache         = {};
 
 // ── Utilities ───────────────────────────────────────────────────────────────
 function leagueBadge(league) {
@@ -376,25 +379,56 @@ document.querySelectorAll('nav button').forEach(btn => {
 });
 
 // ── Standings ────────────────────────────────────────────────────────────────
-async function loadStandings() {
+async function initStandings() {
   try {
-    const res = await fetch(`${BASE}/current_standings.json`);
-    standingsData = await res.json();
-    document.getElementById('last-updated').textContent =
-      `Last updated: ${standingsData.updated}`;
-    renderStandings();
+    const res = await fetch(`${BASE}/seasons_index.json`);
+    const seasons = await res.json();
+    const sel = document.getElementById('season-filter');
+    seasons.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s; opt.textContent = s;
+      sel.appendChild(opt);
+    });
+    await loadSeason(seasons[0]);
   } catch(e) {
     document.getElementById('standings-table-wrap').innerHTML =
       `<p class="error">Could not load standings.</p>`;
   }
 }
 
+async function loadSeason(season) {
+  try {
+    const res = await fetch(`${BASE}/seasons/${season}.json`);
+    currentSeasonData = await res.json();
+    const snaps = currentSeasonData.snapshots;
+    const dateSel = document.getElementById('date-filter');
+    dateSel.innerHTML = '';
+    [...snaps].reverse().forEach(snap => {
+      const opt = document.createElement('option');
+      opt.value = snap.date;
+      opt.textContent = snap.label ? `${snap.date} — ${snap.label}` : snap.date;
+      dateSel.appendChild(opt);
+    });
+    selectSnapshot(snaps[snaps.length - 1].date);
+  } catch(e) {
+    document.getElementById('standings-table-wrap').innerHTML =
+      `<p class="error">Could not load season data.</p>`;
+  }
+}
+
+function selectSnapshot(date) {
+  currentSnapshot = currentSeasonData.snapshots.find(s => s.date === date);
+  document.getElementById('last-updated').textContent = `Standings as of: ${currentSnapshot.date}`;
+  document.getElementById('date-filter').value = date;
+  renderStandings();
+}
+
 function renderStandings() {
+  if (!currentSnapshot) return;
   const league = document.getElementById('league-filter').value;
-  let teams = standingsData.teams;
+  let teams = currentSnapshot.teams;
   if (league !== 'all') teams = teams.filter(t => t.league === league);
 
-  // Re-rank after filtering
   let displayRank = 1;
   const rows = teams.map(t => {
     const rank = league === 'all' ? t.rank : displayRank++;
@@ -427,6 +461,8 @@ function renderStandings() {
     </table>`;
 }
 
+document.getElementById('season-filter').addEventListener('change', e => loadSeason(e.target.value));
+document.getElementById('date-filter').addEventListener('change', e => selectSnapshot(e.target.value));
 document.getElementById('league-filter').addEventListener('change', renderStandings);
 
 // ── Team Summary ─────────────────────────────────────────────────────────────
@@ -608,7 +644,7 @@ function renderGoat() {
 document.getElementById('goat-league-filter').addEventListener('change', renderGoat);
 
 // ── Init ─────────────────────────────────────────────────────────────────────
-loadStandings();
+initStandings();
 loadTeamsIndex();
 loadGoat();
 </script>

@@ -229,5 +229,69 @@ teams_index.sort(key=lambda x: (x['league'], x['name']))
 with open('docs/data/teams_index.json', 'w') as f:
     json.dump(teams_index, f, separators=(',', ':'))
 
+# ── 4. Season standings files ─────────────────────────────────────────────────
+print("Writing season standings files...")
+os.makedirs('docs/data/seasons', exist_ok=True)
+
+# Build notable date labels: date_str -> combined label string
+notable = {}
+
+def add_label(date_str, label):
+    notable[date_str] = f"{notable[date_str]} · {label}" if date_str in notable else label
+
+# End of each domestic league per season
+for (comp, gseason), grp in games_dom.groupby(['competition', 'season']):
+    if not season_is_complete(gseason):
+        continue
+    add_label(str(grp['date'].max().date()), f'End of {comp}')
+
+# CL/EL finals
+for comp, lbl in [('Champions League', 'CL Final'), ('Europa League', 'EL Final')]:
+    euro_df = games_raw[
+        (games_raw['competition'] == comp) &
+        games_raw['comp_season'].notna() &
+        (games_raw['comp_season'].str.strip() != '')
+    ]
+    for comp_season, grp in euro_df.groupby('comp_season'):
+        if not season_is_complete(comp_season):
+            continue
+        add_label(str(grp['date'].max().date()), lbl)
+
+# Group all game-day snapshots by snapshot date's season (pure date-based, no override)
+snap_df = df[df['is_game_day'] == 1].copy()
+snap_df['snapshot_season'] = snap_df['date'].apply(date_to_season)
+
+all_seasons = sorted(snap_df['snapshot_season'].unique())
+
+for season in all_seasons:
+    sdf = snap_df[snap_df['snapshot_season'] == season]
+    snapshots = []
+    for ranking_id, rdf in sdf.groupby('ranking_id'):
+        rdf = rdf.sort_values('rank')
+        snap_date = str(rdf['date'].iloc[0])
+        teams_snap = [
+            {
+                'rank':            int(r['rank']),
+                'team':            r['team'],
+                'league':          clean(r['league']),
+                'rating':          round(float(r['rating']), 3),
+                'record':          record_by_team_date.get((r['team'], snap_date), '—'),
+                'last_match':      clean(r['last_match']),
+                'last_match_date': clean(r['last_match_date']),
+                'domestic_finish': clean(r['domestic_finish']),
+                'cl_finish':       clean(r['cl_finish']),
+                'el_finish':       clean(r['el_finish']),
+            }
+            for _, r in rdf.iterrows()
+        ]
+        snapshots.append({'date': snap_date, 'label': notable.get(snap_date), 'teams': teams_snap})
+
+    snapshots.sort(key=lambda x: x['date'])
+    with open(f'docs/data/seasons/{season}.json', 'w') as f:
+        json.dump({'season': season, 'snapshots': snapshots}, f, separators=(',', ':'))
+
+with open('docs/data/seasons_index.json', 'w') as f:
+    json.dump(list(reversed(all_seasons)), f, separators=(',', ':'))
+
 print(f"Done. {len(teams_index)} teams, {len(standings_data['teams'])} in current standings.")
-print(f"Standings date: {latest_date}")
+print(f"Wrote {len(all_seasons)} season files. Standings date: {latest_date}")
