@@ -205,7 +205,7 @@
   }
   #season-chart {
     width: 100%;
-    height: 160px;
+    height: 180px;
     display: block;
   }
 
@@ -575,7 +575,7 @@ function renderTeamTable() {
   });
 
   // Chart
-  drawChart(rows);
+  drawChart(rows, seasonFilter);
 
   // Table (reverse chronological)
   const tableRows = [...rows].reverse().map(g => `<tr>
@@ -601,25 +601,48 @@ function renderTeamTable() {
     </table>`;
 }
 
-function drawChart(rows) {
+function drawChart(rows, seasonFilter) {
   const wrap = document.getElementById('chart-wrap');
   if (rows.length < 2) { wrap.style.display = 'none'; return; }
   wrap.style.display = 'block';
 
   const svg = document.getElementById('season-chart');
   const W = svg.parentElement.clientWidth - 32;
-  const H = 160;
+  const H = 180;
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
 
   const CHART_MIN = -2.5, CHART_MAX = 2.5;
-  const px = (i) => (i / (rows.length - 1)) * (W - 20) + 10;
-  const py = (r) => H - 20 - ((r - CHART_MIN) / (CHART_MAX - CHART_MIN)) * (H - 30);
+  const CTOP = 10, CBOT = 152;   // chart area; 152..178 reserved for x-axis
 
-  const zeroY = py(0);
+  const px = (i) => (i / (rows.length - 1)) * (W - 20) + 10;
+  const py = (r) => CBOT - ((r - CHART_MIN) / (CHART_MAX - CHART_MIN)) * (CBOT - CTOP);
+
+  const zeroY  = py(0);
   const points = rows.map((r, i) => `${px(i).toFixed(1)},${py(r.rating).toFixed(1)}`).join(' ');
 
-  // gradientUnits="userSpaceOnUse" + real pixel coords so the split lands
-  // exactly on the zero line regardless of the data range.
+  // X-axis labels: years in multi-season view, months in single-season view
+  const isSingle = seasonFilter !== 'all';
+  const MONTHS   = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const ticks = [], xlabels = [];
+  const seen = {};
+  let lastX = -99;
+
+  rows.forEach((r, i) => {
+    const key   = isSingle ? r.date.substring(0, 7) : r.date.substring(0, 4);
+    const label = isSingle
+      ? MONTHS[parseInt(r.date.substring(5, 7)) - 1]
+      : r.date.substring(0, 4);
+    if (!seen[key]) {
+      seen[key] = true;
+      const x = parseFloat(px(i).toFixed(1));
+      if (x - lastX >= 24) {   // skip if too crowded
+        lastX = x;
+        ticks.push(`<line x1="${x}" y1="${CBOT + 2}" x2="${x}" y2="${CBOT + 6}" stroke="#bbb" stroke-width="1"/>`);
+        xlabels.push(`<text x="${x}" y="${CBOT + 16}" font-size="9" fill="#999" text-anchor="middle">${label}</text>`);
+      }
+    }
+  });
+
   svg.innerHTML = `
     <defs>
       <linearGradient id="lineGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="${H}">
@@ -627,8 +650,12 @@ function drawChart(rows) {
         <stop offset="${(zeroY / H + 0.0001).toFixed(4)}" stop-color="#ff6eb4"/>
       </linearGradient>
     </defs>
-    <line x1="10" y1="${zeroY.toFixed(1)}" x2="${(W-10).toFixed(1)}" y2="${zeroY.toFixed(1)}"
+    <line x1="10" y1="${zeroY.toFixed(1)}" x2="${(W - 10).toFixed(1)}" y2="${zeroY.toFixed(1)}"
           stroke="#ccc" stroke-width="1" stroke-dasharray="4,3"/>
+    <line x1="10" y1="${CBOT + 2}" x2="${(W - 10).toFixed(1)}" y2="${CBOT + 2}"
+          stroke="#ddd" stroke-width="1"/>
+    ${ticks.join('')}
+    ${xlabels.join('')}
     <polyline points="${points}" fill="none" stroke="url(#lineGrad)" stroke-width="2.5" stroke-linejoin="round"/>`;
 }
 
