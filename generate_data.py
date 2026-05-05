@@ -293,5 +293,54 @@ for season in all_seasons:
 with open('docs/data/seasons_index.json', 'w') as f:
     json.dump(list(reversed(all_seasons)), f, separators=(',', ':'))
 
+# ── 5. Champions table ────────────────────────────────────────────────────────
+print("Writing champions.json...")
+
+eos = df[df['is_end_of_season'] == 1].copy()
+
+# Final domestic W-D-L per team per season
+final_record_lookup = {
+    (row['team'], row['season']): row['record']
+    for _, row in (
+        all_g.sort_values('date')
+        .groupby(['team', 'season'])
+        .last()
+        .reset_index()[['team', 'season', 'record']]
+        .iterrows()
+    )
+}
+
+def champ_team_dict(row):
+    team = row['team']
+    return {
+        'team':      team,
+        'rating':    round(float(row['rating']), 3),
+        'record':    final_record_lookup.get((team, row['season']), '—'),
+        'cl_finish': clean(row['cl_finish']),
+        'el_finish': clean(row['el_finish']),
+    }
+
+champions = {}
+for league in sorted(DOMESTIC_LEAGUES):
+    entries = []
+    league_eos = eos[eos['league'] == league]
+    for season in sorted(league_eos['season'].unique(), reverse=True):
+        if not season_is_complete(season):
+            continue
+        s = league_eos[league_eos['season'] == season]
+        champ = s[s['domestic_finish'] == 'Champion']
+        ru    = s[s['domestic_finish'] == 'Runner-Up']
+        if champ.empty:
+            continue
+        entries.append({
+            'season':    season,
+            'champion':  champ_team_dict(champ.iloc[0]),
+            'runner_up': champ_team_dict(ru.iloc[0]) if not ru.empty else None,
+        })
+    champions[league] = entries
+
+with open('docs/data/champions.json', 'w') as f:
+    json.dump(champions, f, separators=(',', ':'))
+
 print(f"Done. {len(teams_index)} teams, {len(standings_data['teams'])} in current standings.")
 print(f"Wrote {len(all_seasons)} season files. Standings date: {latest_date}")
