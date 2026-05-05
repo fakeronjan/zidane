@@ -147,11 +147,28 @@
     align-items: center;
     gap: 8px;
   }
-  .rating-bar {
+  .rating-bar-track {
+    width: 80px;
+    height: 6px;
+    background: #eee;
+    border-radius: 3px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .rating-bar-center-line {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 1px;
+    height: 6px;
+    background: #ccc;
+  }
+  .rating-bar-fill {
+    position: absolute;
     height: 6px;
     background: #c8a84b;
     border-radius: 3px;
-    min-width: 2px;
+    top: 0;
   }
 
   .finish-badge {
@@ -193,6 +210,7 @@
 
   .loading { color: #888; padding: 20px; text-align: center; font-size: 13px; }
   .error   { color: #c62828; padding: 20px; font-size: 13px; }
+  .data-note { font-size: 11px; color: #888; margin-bottom: 10px; }
 
   /* Table containers scroll horizontally rather than breaking layout */
   #standings-table-wrap,
@@ -208,7 +226,7 @@
     .last-match-cell { max-width: 130px; }
     .controls { flex-direction: column; align-items: stretch; }
     select { min-width: unset; width: 100%; }
-    .rating-bar { display: none; }         /* drop bar on small screens, keep number */
+    .rating-bar-track { display: none; }    /* drop bar on small screens, keep number */
     /* hide lower-priority columns on mobile */
     .col-hide-mobile { display: none; }
   }
@@ -224,7 +242,7 @@
 
 <nav>
   <button class="active" data-tab="standings">Standings</button>
-  <button data-tab="team-season">Team Season</button>
+  <button data-tab="team-summary">Team Summary</button>
   <button data-tab="goat">GOAT Table</button>
 </nav>
 
@@ -244,10 +262,18 @@
   <div id="standings-table-wrap"><p class="loading">Loading standings...</p></div>
 </div>
 
-<!-- ── TEAM SEASON ──────────────────────────────────────────────────────── -->
-<div id="team-season" class="tab">
+<!-- ── TEAM SUMMARY ─────────────────────────────────────────────────────── -->
+<div id="team-summary" class="tab">
   <div class="controls">
-    <select id="team-select"><option>Loading teams...</option></select>
+    <select id="league-select">
+      <option value="">— Select a league —</option>
+      <option value="EPL">🏴󠁧󠁢󠁥󠁮󠁧󠁿 EPL</option>
+      <option value="La Liga">🇪🇸 La Liga</option>
+      <option value="Bundesliga">🇩🇪 Bundesliga</option>
+      <option value="Serie A">🇮🇹 Serie A</option>
+      <option value="Ligue 1">🇫🇷 Ligue 1</option>
+    </select>
+    <select id="team-select" disabled><option value="">— Select a team —</option></select>
     <select id="season-select"><option value="all">All Seasons</option></select>
   </div>
   <div id="chart-wrap" style="display:none">
@@ -268,6 +294,7 @@
       <option value="Ligue 1">Ligue 1</option>
     </select>
   </div>
+  <p class="data-note">Top 50 single-season ratings · Data covers 2011–12 through the current season</p>
   <div id="goat-table-wrap"><p class="loading">Loading GOAT table...</p></div>
 </div>
 
@@ -316,13 +343,25 @@ function resultClass(match) {
   return '';
 }
 
-const MAX_RATING = 3.0;
+const BAR_MIN = -2.0, BAR_MAX = 2.0, BAR_RANGE = 4.0;
 
 function ratingBar(rating) {
-  const pct = Math.max(0, Math.min(100, (rating / MAX_RATING) * 100));
+  const clipped = Math.max(BAR_MIN, Math.min(BAR_MAX, rating));
+  // 0.0 sits at 50% of the track; each unit = 12.5% of track width
+  let leftPct, widthPct;
+  if (clipped >= 0) {
+    leftPct  = 50;
+    widthPct = (clipped / BAR_RANGE) * 100;
+  } else {
+    widthPct = (-clipped / BAR_RANGE) * 100;
+    leftPct  = 50 - widthPct;
+  }
   return `<div class="rating-bar-wrap">
     <span class="rating-cell">${rating.toFixed(3)}</span>
-    <div class="rating-bar" style="width:${pct.toFixed(1)}%"></div>
+    <div class="rating-bar-track">
+      <div class="rating-bar-center-line"></div>
+      <div class="rating-bar-fill" style="left:${leftPct.toFixed(1)}%;width:${widthPct.toFixed(1)}%"></div>
+    </div>
   </div>`;
 }
 
@@ -390,33 +429,38 @@ function renderStandings() {
 
 document.getElementById('league-filter').addEventListener('change', renderStandings);
 
-// ── Team Season ──────────────────────────────────────────────────────────────
+// ── Team Summary ─────────────────────────────────────────────────────────────
 async function loadTeamsIndex() {
   try {
     const res = await fetch(`${BASE}/teams_index.json`);
     teamsIndex = await res.json();
-    const sel = document.getElementById('team-select');
-    sel.innerHTML = '<option value="">— Select a team —</option>';
-    let currentLeague = '';
-    let grp;
-    teamsIndex.forEach(t => {
-      if (t.league !== currentLeague) {
-        if (grp) sel.appendChild(grp);
-        grp = document.createElement('optgroup');
-        grp.label = t.league;
-        currentLeague = t.league;
-      }
-      const opt = document.createElement('option');
-      opt.value = t.slug;
-      opt.textContent = t.name;
-      grp.appendChild(opt);
-    });
-    if (grp) sel.appendChild(grp);
   } catch(e) {
     document.getElementById('team-select').innerHTML =
       '<option>Could not load teams</option>';
   }
 }
+
+function populateTeams(league) {
+  const sel = document.getElementById('team-select');
+  sel.innerHTML = '<option value="">— Select a team —</option>';
+  if (!league || !teamsIndex) { sel.disabled = true; return; }
+  teamsIndex.filter(t => t.league === league).forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.slug;
+    opt.textContent = t.name;
+    sel.appendChild(opt);
+  });
+  sel.disabled = false;
+}
+
+document.getElementById('league-select').addEventListener('change', e => {
+  populateTeams(e.target.value);
+  document.getElementById('chart-wrap').style.display = 'none';
+  document.getElementById('team-table-wrap').innerHTML =
+    '<p class="loading">Select a team above.</p>';
+  document.getElementById('season-select').innerHTML =
+    '<option value="all">All Seasons</option>';
+});
 
 async function loadTeam(slug) {
   if (!slug) return;
