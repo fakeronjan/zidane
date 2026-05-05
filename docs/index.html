@@ -166,7 +166,6 @@
   .rating-bar-fill {
     position: absolute;
     height: 6px;
-    background: #ff6eb4;
     border-radius: 3px;
     top: 0;
   }
@@ -386,7 +385,7 @@ function ratingBar(rating) {
     <span class="rating-cell">${rating.toFixed(3)}</span>
     <div class="rating-bar-track">
       <div class="rating-bar-center-line"></div>
-      <div class="rating-bar-fill" style="left:${leftPct.toFixed(1)}%;width:${widthPct.toFixed(1)}%"></div>
+      <div class="rating-bar-fill" style="left:${leftPct.toFixed(1)}%;width:${widthPct.toFixed(1)}%;background:${rating >= 0 ? '#1a6b8a' : '#ff6eb4'}"></div>
     </div>
   </div>`;
 }
