@@ -16,7 +16,7 @@
   }
 
   header {
-    background: #1a1a2e;
+    background: #0d3b3b;
     color: #fff;
     padding: 20px 24px 16px;
   }
@@ -24,7 +24,7 @@
     font-size: 28px;
     font-weight: 800;
     letter-spacing: 3px;
-    color: #c8a84b;
+    color: #ff6eb4;
   }
   header p.subtitle {
     font-size: 12px;
@@ -40,7 +40,7 @@
   }
 
   nav {
-    background: #16213e;
+    background: #092d2d;
     display: flex;
     gap: 0;
     overflow-x: auto;
@@ -59,7 +59,7 @@
     transition: color 0.15s, border-color 0.15s;
   }
   nav button:hover { color: #fff; }
-  nav button.active { color: #c8a84b; border-bottom-color: #c8a84b; }
+  nav button.active { color: #ff6eb4; border-bottom-color: #ff6eb4; }
 
   .tab { display: none; padding: 16px; max-width: 1100px; margin: 0 auto; }
   .tab.active { display: block; }
@@ -95,8 +95,8 @@
     box-shadow: 0 1px 4px rgba(0,0,0,0.08);
   }
   thead th {
-    background: #1a1a2e;
-    color: #c8a84b;
+    background: #0d3b3b;
+    color: #ff6eb4;
     padding: 10px 12px;
     text-align: left;
     font-size: 11px;
@@ -140,7 +140,7 @@
   .rating-cell {
     font-weight: 700;
     font-variant-numeric: tabular-nums;
-    color: #1a1a2e;
+    color: #0d3b3b;
   }
   .rating-bar-wrap {
     display: flex;
@@ -166,7 +166,7 @@
   .rating-bar-fill {
     position: absolute;
     height: 6px;
-    background: #c8a84b;
+    background: #ff6eb4;
     border-radius: 3px;
     top: 0;
   }
@@ -178,7 +178,7 @@
     border-radius: 3px;
     white-space: nowrap;
   }
-  .finish-champion { background: #c8a84b; color: #1a1a2e; }
+  .finish-champion { background: #ff6eb4; color: #0d3b3b; }
   .finish-runner   { background: #ddd; color: #444; }
   .finish-leader   { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
 
@@ -215,7 +215,7 @@
   /* League History table */
   .col-champ  { background: #fffdf3; }
   .col-ru     { background: #fafafa; }
-  .season-cell { font-weight: 700; color: #1a1a2e; white-space: nowrap; }
+  .season-cell { font-weight: 700; color: #0d3b3b; white-space: nowrap; }
   .divider-col { width: 4px; background: #e8e8e8; padding: 0; }
   #history-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
@@ -611,14 +611,14 @@ function drawChart(rows) {
   svg.innerHTML = `
     <defs>
       <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#c8a84b" stop-opacity="0.3"/>
-        <stop offset="100%" stop-color="#c8a84b" stop-opacity="0.03"/>
+        <stop offset="0%" stop-color="#ff6eb4" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="#ff6eb4" stop-opacity="0.03"/>
       </linearGradient>
     </defs>
     <line x1="10" y1="${(H-20).toFixed(1)}" x2="${(W-10).toFixed(1)}" y2="${(H-20).toFixed(1)}"
           stroke="#eee" stroke-width="1"/>
     <polygon points="${points} ${areaBot}" fill="url(#chartGrad)"/>
-    <polyline points="${points}" fill="none" stroke="#c8a84b" stroke-width="2" stroke-linejoin="round"/>`;
+    <polyline points="${points}" fill="none" stroke="#ff6eb4" stroke-width="2" stroke-linejoin="round"/>`;
 }
 
 document.getElementById('team-select').addEventListener('change', e => {
