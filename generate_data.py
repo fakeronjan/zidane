@@ -57,6 +57,27 @@ games_raw['away_score'] = pd.to_numeric(games_raw['away_score'], errors='coerce'
 games_raw = games_raw.dropna(subset=['home_score', 'away_score']).copy()
 games_raw['season'] = games_raw['date'].apply(date_to_season)
 
+# Build season overrides for CL/EL games whose comp_season differs from the
+# date-computed season (e.g. the 2020 COVID bubble: Aug 2020 CL games → 2019-20).
+_euro = games_raw[
+    games_raw['competition'].isin({'Champions League', 'Europa League'}) &
+    games_raw['comp_season'].notna() &
+    (games_raw['comp_season'].str.strip() != '')
+].copy()
+_season_override = {}  # (team, date_str) -> correct season
+for _, _row in _euro.iterrows():
+    _ds = str(_row['date'].date())
+    _cs = _row['comp_season'].strip()
+    if date_to_season(_row['date'].date()) != _cs:
+        for _t in [_row['home_team'], _row['away_team']]:
+            _season_override[(_t, _ds)] = _cs
+
+if _season_override:
+    df['season'] = df.apply(
+        lambda r: _season_override.get((r['team'], str(r['date'])), r['season']),
+        axis=1
+    )
+
 # League games only for the record column
 games_dom = games_raw[games_raw['competition'].isin(DOMESTIC_LEAGUES)].copy()
 
