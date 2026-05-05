@@ -318,14 +318,32 @@ final_record_lookup = {
 def champ_team_dict(row):
     team = row['team']
     return {
-        'team':      team,
-        'rating':    round(float(row['rating']), 3),
-        'record':    final_record_lookup.get((team, row['season']), '—'),
-        'cl_finish': clean(row['cl_finish']),
-        'el_finish': clean(row['el_finish']),
+        'team':             team,
+        'rating':           round(float(row['rating']), 3),
+        'record':           final_record_lookup.get((team, row['season']), '—'),
+        'domestic_finish':  clean(row['domestic_finish']),
+        'cl_finish':        clean(row['cl_finish']),
+        'el_finish':        clean(row['el_finish']),
+    }
+
+def euro_team_dict(team, season):
+    team_eos = eos[(eos['team'] == team) & (eos['season'] == season)]
+    if team_eos.empty:
+        return {'team': team, 'rating': None, 'record': '—',
+                'domestic_finish': '', 'cl_finish': '', 'el_finish': ''}
+    row = team_eos.iloc[0]
+    return {
+        'team':             team,
+        'rating':           round(float(row['rating']), 3),
+        'record':           final_record_lookup.get((team, season), '—'),
+        'domestic_finish':  clean(row['domestic_finish']),
+        'cl_finish':        clean(row['cl_finish']),
+        'el_finish':        clean(row['el_finish']),
     }
 
 champions = {}
+
+# Domestic leagues
 for league in sorted(DOMESTIC_LEAGUES):
     entries = []
     league_eos = eos[eos['league'] == league]
@@ -343,6 +361,39 @@ for league in sorted(DOMESTIC_LEAGUES):
             'runner_up': champ_team_dict(ru.iloc[0]) if not ru.empty else None,
         })
     champions[league] = entries
+
+# European cups
+for comp, key in [('Champions League', 'Champions League'), ('Europa League', 'Europa League')]:
+    euro_games = games_raw[
+        (games_raw['competition'] == comp) &
+        games_raw['comp_season'].notna() &
+        (games_raw['comp_season'].str.strip() != '')
+    ].copy()
+    entries = []
+    for comp_season in sorted(euro_games['comp_season'].str.strip().unique(), reverse=True):
+        if not season_is_complete(comp_season):
+            continue
+        sdf      = euro_games[euro_games['comp_season'].str.strip() == comp_season]
+        final    = sdf[sdf['date'] == sdf['date'].max()].iloc[-1]
+        home, away = final['home_team'], final['away_team']
+        hs, as_  = int(final['home_score']), int(final['away_score'])
+        if hs > as_:
+            champion, runner_up = home, away
+        elif as_ > hs:
+            champion, runner_up = away, home
+        else:
+            sw = final['shootout_winner']
+            if pd.notna(sw) and str(sw).strip():
+                champion  = str(sw).strip()
+                runner_up = away if champion == home else home
+            else:
+                continue
+        entries.append({
+            'season':    comp_season,
+            'champion':  euro_team_dict(champion,   comp_season),
+            'runner_up': euro_team_dict(runner_up,  comp_season),
+        })
+    champions[key] = entries
 
 with open('docs/data/champions.json', 'w') as f:
     json.dump(champions, f, separators=(',', ':'))

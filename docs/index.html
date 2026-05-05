@@ -295,12 +295,18 @@
 <div id="league-history" class="tab">
   <div class="controls">
     <select id="history-league-filter">
-      <option value="">— Select a league —</option>
-      <option value="EPL">🏴󠁧󠁢󠁥󠁮󠁧󠁿 EPL</option>
-      <option value="La Liga">🇪🇸 La Liga</option>
-      <option value="Bundesliga">🇩🇪 Bundesliga</option>
-      <option value="Serie A">🇮🇹 Serie A</option>
-      <option value="Ligue 1">🇫🇷 Ligue 1</option>
+      <option value="">— Select a competition —</option>
+      <optgroup label="Domestic Leagues">
+        <option value="EPL">🏴󠁧󠁢󠁥󠁮󠁧󠁿 EPL</option>
+        <option value="La Liga">🇪🇸 La Liga</option>
+        <option value="Bundesliga">🇩🇪 Bundesliga</option>
+        <option value="Serie A">🇮🇹 Serie A</option>
+        <option value="Ligue 1">🇫🇷 Ligue 1</option>
+      </optgroup>
+      <optgroup label="European Cups">
+        <option value="Champions League">🏆 Champions League</option>
+        <option value="Europa League">🏆 Europa League</option>
+      </optgroup>
     </select>
   </div>
   <div id="history-table-wrap"><p class="loading">Select a league above.</p></div>
@@ -657,24 +663,32 @@ function renderLeagueHistory(league) {
   const entries = championsData[league] || [];
   if (!entries.length) {
     document.getElementById('history-table-wrap').innerHTML =
-      `<p class="loading">No data for this league.</p>`;
+      `<p class="loading">No data for this competition.</p>`;
     return;
   }
 
-  function honorBadges(cl, el) {
+  const isCup = league === 'Champions League' || league === 'Europa League';
+
+  function honorBadges(t) {
     const bits = [];
-    if (cl === 'Champion')  bits.push(`<span class="finish-badge finish-champion">CL ★</span>`);
-    if (cl === 'Runner-Up') bits.push(`<span class="finish-badge finish-runner">CL 2nd</span>`);
-    if (el === 'Champion')  bits.push(`<span class="finish-badge finish-champion">EL ★</span>`);
+    if (isCup) {
+      if (t.domestic_finish === 'Champion')  bits.push(`<span class="finish-badge finish-champion">League ★</span>`);
+      if (t.domestic_finish === 'Runner-Up') bits.push(`<span class="finish-badge finish-runner">League 2nd</span>`);
+    } else {
+      if (t.cl_finish === 'Champion')  bits.push(`<span class="finish-badge finish-champion">CL ★</span>`);
+      if (t.cl_finish === 'Runner-Up') bits.push(`<span class="finish-badge finish-runner">CL 2nd</span>`);
+      if (t.el_finish === 'Champion')  bits.push(`<span class="finish-badge finish-champion">EL ★</span>`);
+    }
     return bits.join(' ');
   }
 
   function teamCell(t, bg) {
     if (!t) return `<td class="${bg}" colspan="3">—</td>`;
-    const honors = honorBadges(t.cl_finish, t.el_finish);
+    const honors = honorBadges(t);
+    const rating = t.rating != null ? t.rating.toFixed(3) : '—';
     return `
       <td class="${bg} team-cell" style="white-space:nowrap">${t.team}${honors ? ' ' + honors : ''}</td>
-      <td class="${bg} rating-cell" style="font-variant-numeric:tabular-nums">${t.rating.toFixed(3)}</td>
+      <td class="${bg} rating-cell" style="font-variant-numeric:tabular-nums">${rating}</td>
       <td class="${bg} col-hide-mobile" style="font-variant-numeric:tabular-nums;white-space:nowrap">${t.record}</td>`;
   }
 
