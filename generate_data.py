@@ -257,8 +257,8 @@ for comp, lbl in [('Champions League', 'CL Final'), ('Europa League', 'EL Final'
             continue
         add_label(str(grp['date'].max().date()), lbl)
 
-# Group all game-day snapshots by snapshot date's season (pure date-based, no override)
-snap_df = df[df['is_game_day'] == 1].copy()
+# Group all ranking snapshots by snapshot date's season (pure date-based, no override)
+snap_df = df.copy()
 snap_df['snapshot_season'] = snap_df['date'].apply(date_to_season)
 
 all_seasons = sorted(snap_df['snapshot_season'].unique())
