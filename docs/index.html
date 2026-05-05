@@ -130,11 +130,11 @@
     letter-spacing: 0.3px;
     white-space: nowrap;
   }
-  .badge-EPL        { background: #3d0f70; color: #fff; }
-  .badge-LaLiga     { background: #c8102e; color: #fff; }
-  .badge-Bundesliga { background: #d20515; color: #fff; }
-  .badge-SerieA     { background: #003899; color: #fff; }
-  .badge-Ligue1     { background: #003f8a; color: #fff; }
+  .badge-EPL        { background: #cc0000; color: #fff; }
+  .badge-LaLiga     { background: #f5c518; color: #1a1a1a; }
+  .badge-Bundesliga { background: #1a1a1a; color: #fff; }
+  .badge-SerieA     { background: #00843d; color: #fff; }
+  .badge-Ligue1     { background: #0055a4; color: #fff; }
   .badge-Other      { background: #555; color: #fff; }
 
   .rating-cell {
@@ -178,7 +178,7 @@
     border-radius: 3px;
     white-space: nowrap;
   }
-  .finish-champion { background: #ff6eb4; color: #0d3b3b; }
+  .finish-champion { background: #c8a84b; color: #0d3b3b; }
   .finish-runner   { background: #ddd; color: #444; }
   .finish-leader   { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
 
@@ -598,27 +598,35 @@ function drawChart(rows) {
   const H = 160;
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
 
-  const ratings = rows.map(r => r.rating);
-  const minR = Math.min(...ratings) - 0.1;
-  const maxR = Math.max(...ratings) + 0.1;
-
+  const CHART_MIN = -2.5, CHART_MAX = 2.5;
   const px = (i) => (i / (rows.length - 1)) * (W - 20) + 10;
-  const py = (r) => H - 20 - ((r - minR) / (maxR - minR)) * (H - 30);
+  const py = (r) => H - 20 - ((r - CHART_MIN) / (CHART_MAX - CHART_MIN)) * (H - 30);
+
+  const zeroY   = py(0);
+  const zeroPct = (zeroY / H * 100).toFixed(2);
 
   const points = rows.map((r, i) => `${px(i).toFixed(1)},${py(r.rating).toFixed(1)}`).join(' ');
   const areaBot = `${px(rows.length-1).toFixed(1)},${H-20} ${px(0).toFixed(1)},${H-20}`;
 
   svg.innerHTML = `
     <defs>
-      <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#ff6eb4" stop-opacity="0.3"/>
-        <stop offset="100%" stop-color="#ff6eb4" stop-opacity="0.03"/>
+      <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"         stop-color="#0d3b3b"/>
+        <stop offset="${zeroPct}%" stop-color="#0d3b3b"/>
+        <stop offset="${zeroPct}%" stop-color="#ff6eb4"/>
+        <stop offset="100%"       stop-color="#ff6eb4"/>
+      </linearGradient>
+      <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"         stop-color="#0d3b3b" stop-opacity="0.18"/>
+        <stop offset="${zeroPct}%" stop-color="#0d3b3b" stop-opacity="0.03"/>
+        <stop offset="${zeroPct}%" stop-color="#ff6eb4" stop-opacity="0.03"/>
+        <stop offset="100%"       stop-color="#ff6eb4" stop-opacity="0.15"/>
       </linearGradient>
     </defs>
-    <line x1="10" y1="${(H-20).toFixed(1)}" x2="${(W-10).toFixed(1)}" y2="${(H-20).toFixed(1)}"
-          stroke="#eee" stroke-width="1"/>
-    <polygon points="${points} ${areaBot}" fill="url(#chartGrad)"/>
-    <polyline points="${points}" fill="none" stroke="#ff6eb4" stroke-width="2" stroke-linejoin="round"/>`;
+    <line x1="10" y1="${zeroY.toFixed(1)}" x2="${(W-10).toFixed(1)}" y2="${zeroY.toFixed(1)}"
+          stroke="#ccc" stroke-width="1" stroke-dasharray="4,3"/>
+    <polygon points="${points} ${areaBot}" fill="url(#areaGrad)"/>
+    <polyline points="${points}" fill="none" stroke="url(#lineGrad)" stroke-width="2" stroke-linejoin="round"/>`;
 }
 
 document.getElementById('team-select').addEventListener('change', e => {
