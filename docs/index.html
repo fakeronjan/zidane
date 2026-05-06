@@ -731,12 +731,13 @@ function renderLeagueHistory(league) {
   function honorBadges(t) {
     const bits = [];
     if (isCup) {
-      if (t.domestic_finish === 'Champion')  bits.push(`<span class="finish-badge finish-champion">League ★</span>`);
-      if (t.domestic_finish === 'Runner-Up') bits.push(`<span class="finish-badge finish-runner">League 2nd</span>`);
+      if (t.domestic_finish === 'Champion')  bits.push(`<span class="finish-badge finish-champion">League 🏆</span>`);
+      if (t.domestic_finish === 'Runner-Up') bits.push(`<span class="finish-badge finish-runner">League 🥈</span>`);
     } else {
-      if (t.cl_finish === 'Champion')  bits.push(`<span class="finish-badge finish-champion">CL ★</span>`);
-      if (t.cl_finish === 'Runner-Up') bits.push(`<span class="finish-badge finish-runner">CL 2nd</span>`);
-      if (t.el_finish === 'Champion')  bits.push(`<span class="finish-badge finish-champion">EL ★</span>`);
+      if (t.cl_finish === 'Champion')  bits.push(`<span class="finish-badge finish-champion">CL 🏆</span>`);
+      if (t.cl_finish === 'Runner-Up') bits.push(`<span class="finish-badge finish-runner">CL 🥈</span>`);
+      if (t.el_finish === 'Champion')  bits.push(`<span class="finish-badge finish-champion">EL 🏆</span>`);
+      if (t.el_finish === 'Runner-Up') bits.push(`<span class="finish-badge finish-runner">EL 🥈</span>`);
     }
     return bits.join(' ');
   }
