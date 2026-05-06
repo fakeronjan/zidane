@@ -155,6 +155,13 @@ record_by_team_date = {
     for i in range(len(dates))
 }
 
+# ZIDANE league rank: position within domestic league on each ranking snapshot
+df['lg_rank'] = (
+    df.groupby(['ranking_id', 'league'])['rank']
+    .rank(method='min')
+    .astype(int)
+)
+
 # ── 1. Current standings ─────────────────────────────────────────────────────
 print("Writing current_standings.json...")
 latest_id = int(df['ranking_id'].max())
@@ -230,6 +237,7 @@ for team in all_teams:
                 'date':            str(r['date']),
                 'rating':          round(float(r['rating']), 3),
                 'rank':            int(r['rank']),
+                'lg_rank':         int(r['lg_rank']),
                 'record':          record_as_of(team, season, str(r['date'])),
                 'last_match':      clean(r['last_match']),
                 'domestic_finish': clean(r['domestic_finish']),
@@ -290,6 +298,7 @@ for season in all_seasons:
         teams_snap = [
             {
                 'rank':            int(r['rank']),
+                'lg_rank':         int(r['lg_rank']),
                 'team':            r['team'],
                 'league':          clean(r['league']),
                 'rating':          round(float(r['rating']), 3),
@@ -370,7 +379,7 @@ def _dom_entry(team_name, finish_label, season_str):
     """Build a champion-table team dict from EOS data, overriding domestic_finish."""
     team_eos = eos[(eos['team'] == team_name) & (eos['season'] == season_str)]
     if team_eos.empty:
-        return {'team': team_name, 'rating': None, 'rank': None,
+        return {'team': team_name, 'rating': None, 'rank': None, 'lg_rank': None,
                 'record': final_record_lookup.get((team_name, season_str), '—'),
                 'domestic_finish': finish_label, 'cl_finish': '', 'el_finish': ''}
     r = team_eos.iloc[0]
@@ -378,6 +387,7 @@ def _dom_entry(team_name, finish_label, season_str):
         'team':            team_name,
         'rating':          round(float(r['rating']), 3),
         'rank':            int(r['rank']),
+        'lg_rank':         int(r['lg_rank']),
         'record':          final_record_lookup.get((team_name, season_str), '—'),
         'domestic_finish': finish_label,
         'cl_finish':       clean(r['cl_finish']),
@@ -387,13 +397,14 @@ def _dom_entry(team_name, finish_label, season_str):
 def euro_team_dict(team, season):
     team_eos = eos[(eos['team'] == team) & (eos['season'] == season)]
     if team_eos.empty:
-        return {'team': team, 'rating': None, 'rank': None, 'record': '—',
+        return {'team': team, 'rating': None, 'rank': None, 'lg_rank': None, 'record': '—',
                 'domestic_finish': '', 'cl_finish': '', 'el_finish': ''}
     row = team_eos.iloc[0]
     return {
         'team':             team,
         'rating':           round(float(row['rating']), 3),
         'rank':             int(row['rank']),
+        'lg_rank':          int(row['lg_rank']),
         'record':           final_record_lookup.get((team, season), '—'),
         'domestic_finish':  clean(row['domestic_finish']),
         'cl_finish':        clean(row['cl_finish']),
@@ -447,10 +458,14 @@ for comp, key in [('Champions League', 'Champions League'), ('Europa League', 'E
                 runner_up = away if champion == home else home
             else:
                 continue
+        final_score = f"{hs}-{as_}"
+        if hs == as_:
+            final_score += " (pen)"
         entries.append({
-            'season':    comp_season,
-            'champion':  euro_team_dict(champion,   comp_season),
-            'runner_up': euro_team_dict(runner_up,  comp_season),
+            'season':      comp_season,
+            'final_score': final_score,
+            'champion':    euro_team_dict(champion,   comp_season),
+            'runner_up':   euro_team_dict(runner_up,  comp_season),
         })
     champions[key] = entries
 
