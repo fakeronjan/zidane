@@ -283,6 +283,10 @@
     </select>
     <select id="team-select" disabled><option value="">— Select a team —</option></select>
     <select id="season-select"><option value="all">All Seasons</option></select>
+    <select id="date-type-select">
+      <option value="all">All dates</option>
+      <option value="eos">End of season</option>
+    </select>
   </div>
   <div id="chart-wrap" style="display:none">
     <svg id="season-chart"></svg>
@@ -590,12 +594,15 @@ function renderTeamTable() {
   const data = teamCache[slug];
   const seasonFilter = document.getElementById('season-select').value;
 
+  const dateType = document.getElementById('date-type-select').value;
+
   let rows = [];
   const seasons = Object.keys(data.seasons).sort();
   seasons.forEach(s => {
     if (seasonFilter !== 'all' && s !== seasonFilter) return;
     data.seasons[s].forEach(g => rows.push({...g, season: s}));
   });
+  if (dateType === 'eos') rows = rows.filter(g => g.is_end_of_season === 1);
 
   // Chart
   drawChart(rows, seasonFilter);
@@ -688,6 +695,7 @@ document.getElementById('team-select').addEventListener('change', e => {
   loadTeam(e.target.value);
 });
 document.getElementById('season-select').addEventListener('change', renderTeamTable);
+document.getElementById('date-type-select').addEventListener('change', renderTeamTable);
 
 // ── League History ────────────────────────────────────────────────────────────
 let championsData = null;
