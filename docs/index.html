@@ -731,8 +731,9 @@ function renderLeagueHistory(league) {
   function honorBadges(t) {
     const bits = [];
     if (isCup) {
-      if (t.domestic_finish === 'Champion')  bits.push(`<span class="finish-badge finish-champion">League 🏆</span>`);
-      if (t.domestic_finish === 'Runner-Up') bits.push(`<span class="finish-badge finish-runner">League 🥈</span>`);
+      const lg = LEAGUE_SHORT[t.league] || 'League';
+      if (t.domestic_finish === 'Champion')  bits.push(`<span class="finish-badge finish-champion">${lg} 🏆</span>`);
+      if (t.domestic_finish === 'Runner-Up') bits.push(`<span class="finish-badge finish-runner">${lg} 🥈</span>`);
     } else {
       if (t.cl_finish === 'Champion')  bits.push(`<span class="finish-badge finish-champion">CL 🏆</span>`);
       if (t.cl_finish === 'Runner-Up') bits.push(`<span class="finish-badge finish-runner">CL 🥈</span>`);
