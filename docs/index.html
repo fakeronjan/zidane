@@ -702,11 +702,13 @@ function renderLeagueHistory(league) {
   }
 
   function teamCell(t, bg) {
-    if (!t) return `<td class="${bg}" colspan="3">—</td>`;
+    if (!t) return `<td class="${bg}" colspan="4">—</td>`;
     const honors = honorBadges(t);
     const rating = t.rating != null ? t.rating.toFixed(3) : '—';
+    const rank   = t.rank   != null ? `#${t.rank}` : '—';
     return `
       <td class="${bg} team-cell" style="white-space:nowrap">${t.team}${honors ? ' ' + honors : ''}</td>
+      <td class="${bg}" style="font-variant-numeric:tabular-nums;white-space:nowrap;color:#888;font-size:0.85em">${rank}</td>
       <td class="${bg} rating-cell" style="font-variant-numeric:tabular-nums">${rating}</td>
       <td class="${bg} col-hide-mobile" style="font-variant-numeric:tabular-nums;white-space:nowrap">${t.record}</td>`;
   }
@@ -723,10 +725,12 @@ function renderLeagueHistory(league) {
       <thead><tr>
         <th>Season</th>
         <th class="col-champ">Champion</th>
+        <th class="col-champ col-hide-mobile">Rank</th>
         <th class="col-champ">Rating</th>
         <th class="col-champ col-hide-mobile">Record</th>
         <th class="divider-col"></th>
         <th class="col-ru">Runner-Up</th>
+        <th class="col-ru col-hide-mobile">Rank</th>
         <th class="col-ru">Rating</th>
         <th class="col-ru col-hide-mobile">Record</th>
       </tr></thead>

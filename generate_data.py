@@ -315,26 +315,67 @@ final_record_lookup = {
     )
 }
 
-def champ_team_dict(row):
-    team = row['team']
+# Domestic champion detection from raw game points.
+# zidane.py merges domestic_finish before patching the season on CL-bubble EOS rows
+# (Aug 2020 → 2019-20), so the domestic_finish column in the CSV is wrong for 2019-20.
+# Computing from game standings is immune to that ordering bug.
+#
+# Serie A 2019-20 also extended into August 2020 (final matchday Aug 1-2), so those
+# 10 games fall in '2020-21' by date_to_season. Override them back to '2019-20'.
+games_dom_pts = games_dom.copy()
+_sa_aug2020 = (
+    (games_dom_pts['competition'] == 'Serie A') &
+    (games_dom_pts['date'].dt.year == 2020) &
+    (games_dom_pts['date'].dt.month == 8)
+)
+games_dom_pts.loc[_sa_aug2020, 'season'] = '2019-20'
+
+_dpts_h = games_dom_pts[['season', 'competition', 'home_team', 'home_score', 'away_score']].copy()
+_dpts_h['team'] = _dpts_h['home_team']
+_dpts_h['pts']  = np.where(_dpts_h['home_score'] > _dpts_h['away_score'], 3,
+                  np.where(_dpts_h['home_score'] == _dpts_h['away_score'], 1, 0))
+_dpts_h['gd']   = _dpts_h['home_score'] - _dpts_h['away_score']
+
+_dpts_a = games_dom_pts[['season', 'competition', 'away_team', 'home_score', 'away_score']].copy()
+_dpts_a['team'] = _dpts_a['away_team']
+_dpts_a['pts']  = np.where(_dpts_a['away_score'] > _dpts_a['home_score'], 3,
+                  np.where(_dpts_a['home_score'] == _dpts_a['away_score'], 1, 0))
+_dpts_a['gd']   = _dpts_a['away_score'] - _dpts_a['home_score']
+
+dom_final_pts = (
+    pd.concat([_dpts_h[['competition', 'season', 'team', 'pts', 'gd']],
+               _dpts_a[['competition', 'season', 'team', 'pts', 'gd']]])
+    .groupby(['competition', 'season', 'team'])[['pts', 'gd']].sum().reset_index()
+)
+
+def _dom_entry(team_name, finish_label, season_str):
+    """Build a champion-table team dict from EOS data, overriding domestic_finish."""
+    team_eos = eos[(eos['team'] == team_name) & (eos['season'] == season_str)]
+    if team_eos.empty:
+        return {'team': team_name, 'rating': None, 'rank': None,
+                'record': final_record_lookup.get((team_name, season_str), '—'),
+                'domestic_finish': finish_label, 'cl_finish': '', 'el_finish': ''}
+    r = team_eos.iloc[0]
     return {
-        'team':             team,
-        'rating':           round(float(row['rating']), 3),
-        'record':           final_record_lookup.get((team, row['season']), '—'),
-        'domestic_finish':  clean(row['domestic_finish']),
-        'cl_finish':        clean(row['cl_finish']),
-        'el_finish':        clean(row['el_finish']),
+        'team':            team_name,
+        'rating':          round(float(r['rating']), 3),
+        'rank':            int(r['rank']),
+        'record':          final_record_lookup.get((team_name, season_str), '—'),
+        'domestic_finish': finish_label,
+        'cl_finish':       clean(r['cl_finish']),
+        'el_finish':       clean(r['el_finish']),
     }
 
 def euro_team_dict(team, season):
     team_eos = eos[(eos['team'] == team) & (eos['season'] == season)]
     if team_eos.empty:
-        return {'team': team, 'rating': None, 'record': '—',
+        return {'team': team, 'rating': None, 'rank': None, 'record': '—',
                 'domestic_finish': '', 'cl_finish': '', 'el_finish': ''}
     row = team_eos.iloc[0]
     return {
         'team':             team,
         'rating':           round(float(row['rating']), 3),
+        'rank':             int(row['rank']),
         'record':           final_record_lookup.get((team, season), '—'),
         'domestic_finish':  clean(row['domestic_finish']),
         'cl_finish':        clean(row['cl_finish']),
@@ -343,22 +384,22 @@ def euro_team_dict(team, season):
 
 champions = {}
 
-# Domestic leagues
+# Domestic leagues — rank by final points from game data
 for league in sorted(DOMESTIC_LEAGUES):
     entries = []
-    league_eos = eos[eos['league'] == league]
-    for season in sorted(league_eos['season'].unique(), reverse=True):
+    league_pts = dom_final_pts[dom_final_pts['competition'] == league]
+    for season in sorted(league_pts['season'].unique(), reverse=True):
         if not season_is_complete(season):
             continue
-        s = league_eos[league_eos['season'] == season]
-        champ = s[s['domestic_finish'] == 'Champion']
-        ru    = s[s['domestic_finish'] == 'Runner-Up']
-        if champ.empty:
+        s_pts = league_pts[league_pts['season'] == season].sort_values(['pts', 'gd'], ascending=False).reset_index(drop=True)
+        if len(s_pts) < 2:
             continue
+        champ_name = s_pts.iloc[0]['team']
+        ru_name    = s_pts.iloc[1]['team']
         entries.append({
             'season':    season,
-            'champion':  champ_team_dict(champ.iloc[0]),
-            'runner_up': champ_team_dict(ru.iloc[0]) if not ru.empty else None,
+            'champion':  _dom_entry(champ_name, 'Champion',  season),
+            'runner_up': _dom_entry(ru_name,    'Runner-Up', season),
         })
     champions[league] = entries
 
