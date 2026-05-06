@@ -215,7 +215,7 @@ with open('docs/data/goat_teams.json', 'w') as f:
 
 # ── 3. Per-team JSON files (game days only) ───────────────────────────────────
 print("Writing per-team JSON files...")
-game_days = df[df['is_game_day'] == 1].copy()
+game_days = df[(df['is_game_day'] == 1) | (df['is_end_of_season'] == 1)].copy()
 game_days = game_days.sort_values(['team', 'season', 'date'])
 
 all_teams = sorted(df['team'].unique())
