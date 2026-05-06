@@ -234,15 +234,16 @@ for team in all_teams:
     for season, sdf in tdf.groupby('season'):
         seasons[season] = [
             {
-                'date':            str(r['date']),
-                'rating':          round(float(r['rating']), 3),
-                'rank':            int(r['rank']),
-                'lg_rank':         int(r['lg_rank']),
-                'record':          record_as_of(team, season, str(r['date'])),
-                'last_match':      clean(r['last_match']),
-                'domestic_finish': clean(r['domestic_finish']),
-                'cl_finish':       clean(r['cl_finish']),
-                'el_finish':       clean(r['el_finish']),
+                'date':              str(r['date']),
+                'rating':            round(float(r['rating']), 3),
+                'rank':              int(r['rank']),
+                'lg_rank':           int(r['lg_rank']),
+                'is_end_of_season':  int(r['is_end_of_season']),
+                'record':            record_as_of(team, season, str(r['date'])),
+                'last_match':        clean(r['last_match']),
+                'domestic_finish':   clean(r['domestic_finish']),
+                'cl_finish':         clean(r['cl_finish']),
+                'el_finish':         clean(r['el_finish']),
             }
             for _, r in sdf.sort_values('date').iterrows()
         ]
