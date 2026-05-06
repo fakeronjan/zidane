@@ -407,12 +407,13 @@ def _dom_entry(team_name, finish_label, season_str):
     """Build a champion-table team dict from EOS data, overriding domestic_finish."""
     team_eos = eos[(eos['team'] == team_name) & (eos['season'] == season_str)]
     if team_eos.empty:
-        return {'team': team_name, 'rating': None, 'rank': None, 'lg_rank': None,
+        return {'team': team_name, 'league': '', 'rating': None, 'rank': None, 'lg_rank': None,
                 'record': final_record_lookup.get((team_name, season_str), '—'),
                 'domestic_finish': finish_label, 'cl_finish': '', 'el_finish': ''}
     r = team_eos.iloc[0]
     return {
         'team':            team_name,
+        'league':          clean(r['league']),
         'rating':          round(float(r['rating']), 3),
         'rank':            int(r['rank']),
         'lg_rank':         int(r['lg_rank']),
@@ -425,11 +426,12 @@ def _dom_entry(team_name, finish_label, season_str):
 def euro_team_dict(team, season):
     team_eos = eos[(eos['team'] == team) & (eos['season'] == season)]
     if team_eos.empty:
-        return {'team': team, 'rating': None, 'rank': None, 'lg_rank': None, 'record': '—',
+        return {'team': team, 'league': '', 'rating': None, 'rank': None, 'lg_rank': None, 'record': '—',
                 'domestic_finish': '', 'cl_finish': '', 'el_finish': ''}
     row = team_eos.iloc[0]
     return {
         'team':             team,
+        'league':           clean(row['league']),
         'rating':           round(float(row['rating']), 3),
         'rank':             int(row['rank']),
         'lg_rank':          int(row['lg_rank']),
