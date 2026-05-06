@@ -339,6 +339,14 @@ let teamsIndex        = null;
 let teamCache         = {};
 
 // ── Utilities ───────────────────────────────────────────────────────────────
+function fmtRecord(rec) {
+  if (!rec || rec === '—') return rec || '—';
+  const parts = rec.split('-');
+  if (parts.length !== 3) return rec;
+  const pts = 3 * parseInt(parts[0]) + parseInt(parts[1]);
+  return `${rec} <span style="color:#888;font-size:0.85em">(${pts})</span>`;
+}
+
 function leagueBadge(league) {
   const cls = {
     'EPL': 'badge-EPL', 'La Liga': 'badge-LaLiga',
@@ -472,7 +480,7 @@ function renderStandings() {
       <td class="rank-cell">${rank}</td>
       <td class="team-cell">${t.team}</td>
       <td>${leagueBadge(t.league)}</td>
-      <td style="font-variant-numeric:tabular-nums;white-space:nowrap">${t.record || '—'}</td>
+      <td style="font-variant-numeric:tabular-nums;white-space:nowrap">${fmtRecord(t.record)}</td>
       <td>${ratingBar(t.rating)}</td>
       <td class="last-match-cell">
         <span class="${resultClass(t.last_match)}">${t.last_match || '—'}</span>
@@ -584,7 +592,7 @@ function renderTeamTable() {
     <td class="last-match-cell">
       <span class="${resultClass(g.last_match)}">${g.last_match || '—'}</span>
     </td>
-    <td style="font-variant-numeric:tabular-nums;white-space:nowrap">${g.record || '—'}</td>
+    <td style="font-variant-numeric:tabular-nums;white-space:nowrap">${fmtRecord(g.record)}</td>
     <td>${ratingBar(g.rating)}</td>
     <td class="rank-cell">${g.rank}</td>
     <td class="col-hide-mobile" style="font-size:11px">${finishBadge(g.domestic_finish, g.cl_finish, g.el_finish)}</td>
@@ -710,7 +718,7 @@ function renderLeagueHistory(league) {
       <td class="${bg} team-cell" style="white-space:nowrap">${t.team}${honors ? ' ' + honors : ''}</td>
       <td class="${bg}" style="font-variant-numeric:tabular-nums;white-space:nowrap;color:#888;font-size:0.85em">${rank}</td>
       <td class="${bg} rating-cell" style="font-variant-numeric:tabular-nums">${rating}</td>
-      <td class="${bg} col-hide-mobile" style="font-variant-numeric:tabular-nums;white-space:nowrap">${t.record}</td>`;
+      <td class="${bg} col-hide-mobile" style="font-variant-numeric:tabular-nums;white-space:nowrap">${fmtRecord(t.record)}</td>`;
   }
 
   const rows = entries.map(e => `<tr>

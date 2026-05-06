@@ -8,6 +8,7 @@ import numpy as np
 import json
 import os
 import re
+from bisect import bisect_right
 from datetime import date
 
 os.makedirs('docs/data/teams', exist_ok=True)
@@ -124,17 +125,34 @@ cur_records = (
     .to_dict()
 )
 
-# Running record lookup: (team, date_str) -> record after last game that date
-running_lookup = (
-    all_g.sort_values(['team', 'season', 'date'])
-    .groupby(['team', 'date'])['record']
+# Per-team, per-season sorted record history.
+# Keyed by (team, season); each value is a pair of parallel lists (dates, records)
+# sorted by date so bisect_right gives O(log n) forward-fill for any snapshot date.
+_rec_sorted = (
+    all_g.groupby(['team', 'season', 'date'])['record']
     .last()
     .reset_index()
+    .sort_values(['team', 'season', 'date'])
 )
-running_lookup['date_str'] = running_lookup['date'].astype(str)
+_rec_sorted['date_str'] = pd.to_datetime(_rec_sorted['date']).dt.strftime('%Y-%m-%d')
+_rec_hist = {}
+for key, grp in _rec_sorted.groupby(['team', 'season']):
+    _rec_hist[key] = (list(grp['date_str']), list(grp['record']))
+
+def record_as_of(team, season, snap_date_str):
+    """Domestic W-D-L for team in season as of snap_date_str (forward-filled)."""
+    entry = _rec_hist.get((team, season))
+    if not entry:
+        return '—'
+    dates, recs = entry
+    idx = bisect_right(dates, snap_date_str) - 1
+    return recs[idx] if idx >= 0 else '—'
+
+# Exact-date lookup for current standings (current season only)
 record_by_team_date = {
-    (row['team'], row['date_str']): row['record']
-    for _, row in running_lookup.iterrows()
+    (team, dates[i]): recs[i]
+    for (team, _season), (dates, recs) in _rec_hist.items()
+    for i in range(len(dates))
 }
 
 # ── 1. Current standings ─────────────────────────────────────────────────────
@@ -212,7 +230,7 @@ for team in all_teams:
                 'date':            str(r['date']),
                 'rating':          round(float(r['rating']), 3),
                 'rank':            int(r['rank']),
-                'record':          record_by_team_date.get((team, str(r['date'])), '—'),
+                'record':          record_as_of(team, season, str(r['date'])),
                 'last_match':      clean(r['last_match']),
                 'domestic_finish': clean(r['domestic_finish']),
                 'cl_finish':       clean(r['cl_finish']),
@@ -275,7 +293,7 @@ for season in all_seasons:
                 'team':            r['team'],
                 'league':          clean(r['league']),
                 'rating':          round(float(r['rating']), 3),
-                'record':          record_by_team_date.get((r['team'], snap_date), '—'),
+                'record':          record_as_of(r['team'], season, snap_date),
                 'last_match':      clean(r['last_match']),
                 'last_match_date': clean(r['last_match_date']),
                 'domestic_finish': clean(r['domestic_finish']),
