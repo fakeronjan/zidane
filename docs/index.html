@@ -773,7 +773,12 @@ function renderLeagueHistory(league) {
     ? `<th class="divider-col" style="text-align:center;font-size:10px;width:52px">Final</th>`
     : `<th class="divider-col"></th>`;
 
+  const note = league === 'Europa League'
+    ? `<p class="data-note">Known as the UEFA Cup before the 2009–10 rebrand.</p>`
+    : '';
+
   document.getElementById('history-table-wrap').innerHTML = `
+    ${note}
     <table>
       <thead><tr>
         <th>Season</th>
