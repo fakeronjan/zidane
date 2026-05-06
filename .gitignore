@@ -4,3 +4,4 @@ compare_caps.py
 __pycache__/
 *.pyc
 .DS_Store
+zidane_ratings.csv

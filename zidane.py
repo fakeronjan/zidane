@@ -438,6 +438,489 @@ TEAM_NAME_MAP = {
     'Werder Bremen':                    'SV Werder Bremen',
     'Zenit St. Petersburg':             'FC Zenit Saint Petersburg',
     'sc Heerenveen':                    'sc Heerenveen',
+
+    # ====================================================================
+    # WIKIPEDIA — UEFA Cup / Europa League name variants (Phase 2 backfill)
+    # Wikipedia generally uses common short names ("Ajax", "Benfica") rather
+    # than the full club name. These map to the same canonical we use
+    # everywhere else so teams aren't double-counted.
+    # ====================================================================
+
+    # England (Wikipedia variants)
+    'Aberdeen':                         'Aberdeen FC',
+    'Birmingham City':                  'Birmingham City FC',
+    'Charlton Athletic':                'Charlton Athletic FC',
+    'Dundalk':                          'Dundalk FC',
+    'Fulham':                           'Fulham FC',
+    'Heart of Midlothian':              'Heart of Midlothian FC',
+    'Hibernian':                        'Hibernian FC',
+    'Sligo Rovers':                     'Sligo Rovers FC',
+
+    # Spain
+    'Atlético Madrid':                  'Club Atlético de Madrid',
+    'Deportivo La Coruña':              'Deportivo de La Coruña',
+    'Espanyol':                         'RCD Espanyol de Barcelona',
+    'Málaga':                           'Málaga CF',
+    'Mallorca':                         'RCD Mallorca',
+    'Real Betis':                       'Real Betis Balompié',
+    'Real Sociedad':                    'Real Sociedad de Fútbol',
+
+    # Germany
+    'TSG Hoffenheim':                   'TSG 1899 Hoffenheim',
+    'Mainz 05':                         '1. FSV Mainz 05',
+
+    # Italy
+    'Inter Milan':                      'FC Internazionale Milano',
+    'Milan':                            'AC Milan',
+
+    # France
+    'Bordeaux':                         'FC Girondins de Bordeaux',
+    'Saint-Étienne':                    'AS Saint-Étienne',
+
+    # Netherlands
+    'AZ':                               'AZ Alkmaar',
+    'ADO Den Haag':                     'ADO Den Haag',
+    'Ajax':                             'AFC Ajax',
+    'Heerenveen':                       'sc Heerenveen',
+    'Roda JC':                          'Roda JC',
+    'Twente':                           'FC Twente',
+    'Vitesse':                          'Vitesse Arnhem',
+    'Willem II':                        'Willem II',
+
+    # Belgium / Switzerland / Austria / Portugal
+    'Anderlecht':                       'RSC Anderlecht',
+    'Antwerp':                          'Royal Antwerp FC',
+    'Brugge':                           'Club Brugge',
+    'Genk':                             'KRC Genk',
+    'Gent':                             'KAA Gent',
+    'Standard Liège':                   'Standard Liège',
+    'Beveren':                          'KSK Beveren',
+    'Lokeren':                          'KSC Lokeren',
+    'Mechelen':                         'KV Mechelen',
+    'Mouscron':                         'Excelsior Mouscron',
+    'Westerlo':                         'KVC Westerlo',
+    'Charleroi':                        'Sporting Charleroi',
+    'Zulte Waregem':                    'SV Zulte Waregem',
+    'Lierse':                           'Lierse SK',
+    'Young Boys':                       'BSC Young Boys',
+    'Basel':                            'FC Basel',
+    'Sion':                             'FC Sion',
+    'Zürich':                           'FC Zürich',
+    'Servette':                         'Servette FC',
+    'St. Gallen':                       'FC St. Gallen',
+    'Thun':                             'FC Thun',
+    'Luzern':                           'FC Luzern',
+    'Grasshopper':                      'Grasshopper Club Zürich',
+    'Sturm Graz':                       'SK Sturm Graz',
+    'Austria Wien':                     'Austria Wien',
+    'Rapid Wien':                       'SK Rapid Wien',
+    'Red Bull Salzburg':                'FC Red Bull Salzburg',
+    'Salzburg':                         'FC Red Bull Salzburg',
+    'LASK':                             'LASK',
+    'Mattersburg':                      'SV Mattersburg',
+    'Ried':                             'SV Ried',
+    'Pasching':                         'SV Pasching',
+    'Wolfsberger AC':                   'Wolfsberger AC',
+    'Benfica':                          'Sport Lisboa e Benfica',
+    'Porto':                            'FC Porto',
+    'Sporting':                         'Sporting Clube de Portugal',
+    'Sporting CP':                      'Sporting Clube de Portugal',
+    'Braga':                            'Sporting Clube de Braga',
+    'Vitória de Guimarães':             'Vitória SC',
+    'Vitória SC':                       'Vitória SC',
+    'Marítimo':                         'CS Marítimo',
+    'Nacional':                         'CD Nacional',
+    'Boavista':                         'Boavista FC',
+    'Belenenses':                       'CF Os Belenenses',
+    'Paços de Ferreira':                'FC Paços de Ferreira',
+    'Académica':                        'Académica de Coimbra',
+    'Penafiel':                         'FC Penafiel',
+    'Estrela da Amadora':               'CF Estrela da Amadora',
+    'Beira-Mar':                        'SC Beira-Mar',
+    'Leiria':                           'União de Leiria',
+
+    # Greece
+    'AEK Athens':                       'AEK Athens',
+    'Aris':                             'Aris Thessaloniki',
+    'Panathinaikos':                    'Panathinaikos FC',
+    'PAOK':                             'PAOK',
+    'Olympiakos':                       'Olympiakos Piraeus',
+    'Panionios':                        'Panionios',
+    'Atromitos':                        'Atromitos',
+    'Asteras Tripolis':                 'Asteras Tripoli',
+    'Skoda Xanthi':                     'Xanthi FC',
+    'Xanthi':                           'Xanthi FC',
+    'OFI':                              'OFI Crete',
+    'Iraklis':                          'Iraklis Thessaloniki',
+    'Levadiakos':                       'Levadiakos',
+    'Kerkyra':                          'PAE Kerkyra',
+    'Veria':                            'PAE Veria',
+    'Larissa':                          'AEL Larissa',
+    'AEL Larissa':                      'AEL Larissa',
+    'Volos':                            'Volos NFC',
+    'Apollon Smyrnis':                  'Apollon Smyrnis',
+
+    # Turkey
+    'Fenerbahçe':                       'Fenerbahce',
+    'Galatasaray':                      'Galatasaray SK',
+    'Beşiktaş':                         'Besiktas',
+    'Trabzonspor':                      'Trabzonspor',
+    'Konyaspor':                        'Konyaspor',
+    'İstanbul Başakşehir':              'Istanbul Başakşehir',
+    'Bursaspor':                        'Bursaspor',
+    'Gaziantepspor':                    'Gaziantepspor',
+    'Sivasspor':                        'Sivasspor',
+    'Akhisarspor':                      'Akhisarspor',
+    'Eskişehirspor':                    'Eskişehirspor',
+    'Gençlerbirliği':                   'Gençlerbirliği',
+    'Kayserispor':                      'Kayserispor',
+    'Antalyaspor':                      'Antalyaspor',
+    'Alanyaspor':                       'Alanyaspor',
+
+    # Russia / Ukraine / Eastern Europe
+    'CSKA Moscow':                      'PFC CSKA Moskva',
+    'Spartak Moscow':                   'FC Spartak Moscow',
+    'Lokomotiv Moscow':                 'FC Lokomotiv Moscow',
+    'Dynamo Moscow':                    'FC Dynamo Moscow',
+    'Zenit Saint Petersburg':           'FC Zenit Saint Petersburg',
+    'Rubin Kazan':                      'FC Rubin Kazan',
+    'Krasnodar':                        'FC Krasnodar',
+    'Anzhi Makhachkala':                'FC Anzhi Makhachkala',
+    'Rostov':                           'FC Rostov',
+    'Terek Grozny':                     'FC Akhmat Grozny',
+    'Akhmat Grozny':                    'FC Akhmat Grozny',
+    'FC Moscow':                        'FC Moscow',
+    'Amkar Perm':                       'Amkar Perm',
+    'Tom Tomsk':                        'FC Tom Tomsk',
+    'Saturn':                           'FC Saturn Ramenskoye',
+    'Kuban Krasnodar':                  'Kuban Krasnodar',
+    'Spartak Nalchik':                  'Spartak Nalchik',
+    'Krylia Sovetov':                   'Krylia Sovetov Samara',
+    'Krylia Sovetov Samara':            'Krylia Sovetov Samara',
+    'Dynamo Kyiv':                      'FC Dynamo Kyiv',
+    'Shakhtar Donetsk':                 'FK Shakhtar Donetsk',
+    'Metalist Kharkiv':                 'Metalist Kharkiv',
+    'Dnipro Dnipropetrovsk':            'FC Dnipro Dnipropetrovsk',
+    'Dnipro':                           'FC Dnipro Dnipropetrovsk',
+    'Chornomorets Odesa':               'Chornomorets Odessa',
+    'Karpaty Lviv':                     'Karpaty Lviv',
+    'Vorskla Poltava':                  'Vorskla Poltava',
+    'Zorya Luhansk':                    'Zorya Lugansk',
+    'Olimpik Donetsk':                  'Olimpik Donetsk',
+    'Oleksandriya':                     'FC Oleksandriya',
+    'Mariupol':                         'FC Mariupol',
+    'Tavriya Simferopol':               'Tavriya Simferopol',
+    'Metalurh Donetsk':                 'Metalurh Donetsk',
+    'Metalurh Zaporizhzhia':            'Metalurh Zaporizhzhia',
+
+    # Czech Republic / Slovakia
+    'Sparta Prague':                    'AC Sparta Praha',
+    'Slavia Prague':                    'SK Slavia Praha',
+    'Viktoria Plzeň':                   'FC Viktoria Plzeň',
+    'Plzeň':                            'FC Viktoria Plzeň',
+    'Mladá Boleslav':                   'FK Mladá Boleslav',
+    'Jablonec':                         'FK Jablonec',
+    'Liberec':                          'FC Slovan Liberec',
+    'Slovan Liberec':                   'FC Slovan Liberec',
+    'Teplice':                          'FK Teplice',
+    'Sigma Olomouc':                    'SK Sigma Olomouc',
+    'Olomouc':                          'SK Sigma Olomouc',
+    'Slovan Bratislava':                'ŠK Slovan Bratislava',
+    'Trnava':                           'Spartak Trnava',
+    'Spartak Trnava':                   'Spartak Trnava',
+    'Žilina':                           'MŠK Žilina',
+    'MŠK Žilina':                       'MŠK Žilina',
+    'Ružomberok':                       'MFK Ružomberok',
+
+    # Scandinavia
+    'Copenhagen':                       'FC København',
+    'Brøndby':                          'Brøndby IF',
+    'Midtjylland':                      'FC Midtjylland',
+    'Nordsjælland':                     'FC Nordsjælland',
+    'Aalborg':                          'AaB',
+    'AaB':                              'AaB',
+    'Esbjerg':                          'Esbjerg fB',
+    'OB':                               'Odense BK',
+    'Lyngby':                           'Lyngby BK',
+    'Randers':                          'Randers FC',
+    'Sønderjyske':                      'SønderjyskE',
+    'Silkeborg':                        'Silkeborg IF',
+    'Horsens':                          'AC Horsens',
+    'Rosenborg':                        'Rosenborg BK',
+    'Molde':                            'Molde FK',
+    'Brann':                            'SK Brann',
+    'Vålerenga':                        'Vålerenga IF',
+    'Lillestrøm':                       'Lillestrøm SK',
+    'Stabæk':                           'Stabæk',
+    'Tromsø':                           'Tromsø IL',
+    'Viking':                           'Viking FK',
+    'Bodø/Glimt':                       'FK Bodø/Glimt',
+    'Strømsgodset':                     'Strømsgodset',
+    'Odd':                              'Odds BK',
+    'Odds BK':                          'Odds BK',
+    'Aalesund':                         'Aalesunds FK',
+    'Sarpsborg 08':                     'Sarpsborg 08 FF',
+    'Häcken':                           'BK Häcken',
+    'BK Häcken':                        'BK Häcken',
+    'AIK':                              'AIK',
+    'IFK Göteborg':                     'IFK Goteborg',
+    'IFK Norrköping':                   'IFK Norrköping',
+    'Malmö FF':                         'Malmo FF',
+    'Djurgården':                       'Djurgardens IF',
+    'Djurgårdens IF':                   'Djurgardens IF',
+    'Hammarby':                         'Hammarby',
+    'Helsingborg':                      'Helsingborgs IF',
+    'Helsingborgs IF':                  'Helsingborgs IF',
+    'Kalmar FF':                        'Kalmar FF',
+    'Halmstads BK':                     'Halmstads BK',
+    'Östers IF':                        'Östers IF',
+    'Elfsborg':                         'IF Elfsborg',
+    'IF Elfsborg':                      'IF Elfsborg',
+    'GAIS':                             'GAIS',
+    'Gefle':                            'Gefle IF',
+    'AGF':                              'AGF',
+    'HJK':                              'HJK Helsinki',
+    'TPS':                              'TPS Turku',
+    'Tampere United':                   'Tampere United',
+    'Inter Turku':                      'Inter Turku',
+    'KuPS':                             'KuPS Kuopio',
+    'Honka':                            'FC Honka',
+    'FC Lahti':                         'FC Lahti',
+    'Haka':                             'Haka Valkeakoski',
+    'MyPa':                             'MYPA',
+    'MYPA':                             'MYPA',
+
+    # Balkans
+    'Red Star Belgrade':                'FK Crvena Zvezda',
+    'Crvena zvezda':                    'FK Crvena Zvezda',
+    'Partizan':                         'FK Partizan',
+    'Vojvodina':                        'FK Vojvodina',
+    'Čukarički':                        'FK Čukarički',
+    'Spartak Subotica':                 'Spartak Subotica',
+    'OFK Beograd':                      'OFK Beograd',
+    'Sarajevo':                         'FK Sarajevo',
+    'Željezničar':                      'Zeljeznicar Sarajevo',
+    'Široki Brijeg':                    'NK Siroki Brijeg',
+    'Zrinjski Mostar':                  'HSK Zrinjski Mostar',
+    'Borac Banja Luka':                 'Borac Banja Luka',
+    'Dinamo Zagreb':                    'GNK Dinamo Zagreb',
+    'Hajduk Split':                     'Hajduk Split',
+    'Rijeka':                           'HNK Rijeka',
+    'Lokomotiva Zagreb':                'Lokomotiva Zagreb',
+    'Slaven Belupo':                    'NK Slaven Belupo',
+    'Osijek':                           'NK Osijek',
+    'Maribor':                          'NK Maribor',
+    'Olimpija Ljubljana':               'NK Olimpija Ljubljana',
+    'Domžale':                          'NK Domžale',
+    'Celje':                            'NK Celje',
+    'Koper':                            'FC Koper',
+    'Mura':                             'NŠ Mura',
+
+    # Romania / Bulgaria / Hungary / Poland
+    'Steaua București':                 'FCSB',
+    'FCSB':                             'FCSB',
+    'Dinamo București':                 'FC Dinamo București',
+    'Rapid București':                  'FC Rapid București',
+    'Astra Giurgiu':                    'Astra Giurgiu',
+    'CFR Cluj':                         'CFR Cluj',
+    'Vaslui':                           'FC Vaslui',
+    'Universitatea Craiova':            'Universitatea Craiova',
+    'Politehnica Timișoara':            'FC Politehnica Timisoara',
+    'Levski Sofia':                     'Levski Sofia',
+    'CSKA Sofia':                       'CSKA Sofia',
+    'Slavia Sofia':                     'PFC Slavia Sofia',
+    'Lokomotiv Plovdiv':                'PFC Lokomotiv Plovdiv',
+    'Lokomotiv Sofia':                  'Lokomotiv Sofia',
+    'Litex Lovech':                     'PFC Litex Lovech',
+    'Ludogorets Razgrad':               'PFC Ludogorets Razgrad',
+    'Ludogorets':                       'PFC Ludogorets Razgrad',
+    'Botev Plovdiv':                    'Botev Plovdiv',
+    'Cherno More':                      'Cherno More Varna',
+    'Beroe Stara Zagora':               'Beroe Stara Zagora',
+    'Slavia Sofia':                     'PFC Slavia Sofia',
+    'Debrecen':                         'Debreceni VSC',
+    'Debreceni VSC':                    'Debreceni VSC',
+    'Ferencváros':                      'Ferencvaros',
+    'Videoton':                         'Videoton FC',
+    'Honvéd':                           'Budapest Honvéd',
+    'Újpest':                           'Újpest FC',
+    'Diósgyőr':                         'Diósgyőri VTK',
+    'MTK Budapest':                     'MTK',
+    'Wisła Kraków':                     'Wisla Krakow',
+    'Lech Poznań':                      'Lech Poznan',
+    'Legia Warsaw':                     'Legia Warsaw',
+    'Polonia Warsaw':                   'Polonia Warszawa',
+    'Polonia Warszawa':                 'Polonia Warszawa',
+    'Śląsk Wrocław':                    'Śląsk Wrocław',
+    'Lechia Gdańsk':                    'Lechia Gdańsk',
+    'Pogoń Szczecin':                   'Pogoń Szczecin',
+    'Cracovia':                         'KS Cracovia',
+    'Ruch Chorzów':                     'Ruch Chorzów',
+    'Górnik Zabrze':                    'Górnik Zabrze',
+    'Zagłębie Lubin':                   'Zaglebie Lubin',
+    'Bełchatów':                        'GKS Bełchatów',
+
+    # Cyprus / Israel / Other
+    'APOEL':                            'APOEL Nikosia',
+    'Anorthosis':                       'Anorthosis Famagusta',
+    'AEK Larnaca':                      'AEK Larnaca',
+    'Apollon Limassol':                 'Apollon Limassol',
+    'AEL Limassol':                     'AEL Limassol',
+    'Omonia':                           'Omonia Nicosia',
+    'Omonia Nicosia':                   'Omonia Nicosia',
+    'Maccabi Tel Aviv':                 'Maccabi Tel Aviv',
+    'Maccabi Haifa':                    'Maccabi Haifa',
+    'Hapoel Tel Aviv':                  'Hapoel Tel Aviv',
+    'Hapoel Be\'er Sheva':              'Hapoel Be\'er Sheva',
+    'Bnei Sakhnin':                     'Bnei Sakhnin',
+    'Beitar Jerusalem':                 'Beitar Jerusalem',
+    'Hapoel Haifa':                     'Hapoel Haifa',
+
+    # Various
+    'Vaduz':                            'FC Vaduz',
+    'F91 Dudelange':                    'F91 Dudelange',
+    'Differdange 03':                   'FC Differdange 03',
+    'Jeunesse Esch':                    'Jeunesse Esch',
+    'Fola Esch':                        'CS Fola Esch',
+    'Drita':                            'KF Drita',
+    'Tirana':                           'KF Tirana',
+    'Skënderbeu':                       'KF Skënderbeu',
+    'Vllaznia':                         'FK Vllaznia',
+    'Partizani':                        'FK Partizani Tirana',
+    'Teuta':                            'KS Teuta',
+    'Kukësi':                           'FK Kukësi',
+    'Laçi':                             'KF Laçi',
+    'Sileks':                           'FK Sileks',
+    'Vardar':                           'Vardar Skopje',
+    'Sloga Jugomagnat':                 'Sloga Jugomagnat Skopje',
+    'Pelister':                         'FK Pelister',
+    'Rabotnički':                       'Rabotnicki',
+    'Shkëndija':                        'KF Shkëndija',
+    'Renova':                           'Renova',
+    'Alashkert':                        'FC Alashkert',
+    'Ararat-Armenia':                   'FC Ararat-Armenia',
+    'Pyunik':                           'Pyunik',
+    'Mika':                             'FC Mika',
+    'Banants':                          'FC Banants',
+    'Ulisses':                          'Ulisses FC',
+    'Shirak':                           'Shirak SC',
+    'Astana':                           'FK Astana',
+    'Kairat':                           'Kairat',
+    'Aktobe':                           'Aktobe',
+    'Tobol':                            'FC Tobol',
+    'Ordabasy':                         'FC Ordabasy',
+    'Atyrau':                           'FC Atyrau',
+    'Irtysh':                           'Irtysh Pavlodar',
+    'Shakhter Karagandy':               'FC Shakhter Karagandy',
+    'Qarabağ':                          'Qarabağ FK',
+    'Gabala':                           'FK Gabala',
+    'Inter Baku':                       'Inter Baku PIK',
+    'Khazar Lankaran':                  'Khazar Lankaran',
+    'Olimpik Baku':                     'Olimpik Baku',
+    'AZAL Baku':                        'AZAL Baku',
+    'Baku':                             'Baku',
+    'Neftchi Baku':                     'Neftchi PFC Baku',
+    'Dinamo Tbilisi':                   'Dinamo Tbilisi',
+    'Torpedo Kutaisi':                  'Torpedo Kutaisi',
+    'Sioni Bolnisi':                    'Sioni Bolnisi',
+    'WIT Georgia':                      'WIT Georgia',
+    'Locomotive Tbilisi':               'Locomotive Tbilisi',
+    'Ameri Tbilisi':                    'Ameri Tbilisi',
+    'Saburtalo Tbilisi':                'Saburtalo Tbilisi',
+    'BATE Borisov':                     'BATE Borisov',
+    'Dinamo Minsk':                     'Dinamo Minsk',
+    'Shakhtyor Soligorsk':              'Shakhtyor Soligorsk',
+    'Gomel':                            'Gomel',
+    'Belshina Bobruisk':                'Belshina Bobruisk',
+    'Naftan Novopolotsk':               'Naftan Novopolotsk',
+    'Slavia Mozyr':                     'FC Slavia Mozyr',
+    'MTZ-RIPO Minsk':                   'MTZ-RIPO Minsk',
+    'BFC Daugava':                      'BFC Daugava',
+    'Skonto':                           'Skonto',
+    'Ventspils':                        'Ventspils',
+    'Liepājas Metalurgs':               'Liepajas Metalurgs',
+    'Liepāja':                          'FK Liepāja',
+    'RFS':                              'FK RFS',
+    'Riga':                             'Riga FC',
+    'FBK Kaunas':                       'FBK Kaunas',
+    'Ekranas':                          'FK Ekranas',
+    'Atlantas':                         'Atlantas',
+    'Sūduva':                           'FK Sūduva',
+    'Kauno Žalgiris':                   'Kauno Žalgiris',
+    'Žalgiris':                         'FK Žalgiris',
+    'Sheriff Tiraspol':                 'Sheriff Tiraspol',
+    'Zimbru Chișinău':                  'Zimbru Chisinau',
+    'Tiraspol':                         'FC Tiraspol',
+    'Dacia Chișinău':                   'Dacia Chișinău',
+    'Milsami':                          'Milsami Orhei',
+    'Petrocub':                         'CS Petrocub',
+    'Rapid Ghidighici':                 'Rapid Ghidighici',
+    'Sant Julià':                       'UE Sant Julia',
+    'Santa Coloma':                     'FC Santa Coloma',
+    'UE Santa Coloma':                  'UE Santa Coloma',
+    'Lusitanos':                        'FC Lusitanos',
+    'Inter Club d\'Escaldes':           'Inter Club d\'Escaldes',
+    'Engordany':                        'CE Engordany',
+    'KÍ':                               'KI Klaksvik',
+    'KI Klaksvik':                      'KI Klaksvik',
+    'KÍ Klaksvík':                      'KI Klaksvik',
+    'B36':                              'B36 Torshavn',
+    'B68':                              'B68 Toftir',
+    'EB/Streymur':                      'EB / Streymur',
+    'NSÍ Runavík':                      'NSI',
+    'NSÍ':                              'NSI',
+    'HB':                               'HB Torshavn',
+    'HB Torshavn':                      'HB Torshavn',
+    'Víkingur':                         'Vikingur Reykjavik',
+    'Víkingur Reykjavík':               'Vikingur Reykjavik',
+    'KR':                               'KR Reykjavik',
+    'Valur':                            'Valur Reykjavik',
+    'FH':                               'FH',
+    'IBV':                              'IB Vestmannaeyja',
+    'ÍBV':                              'IB Vestmannaeyja',
+    'Stjarnan':                         'Stjarnan',
+    'Breiðablik':                       'Breiðablik',
+    'IA':                               'IA Akranes',
+    'IA Akranes':                       'IA Akranes',
+    'Linfield':                         'Linfield',
+    'Glentoran':                        'Glentoran',
+    'Cliftonville':                     'Cliftonville',
+    'Crusaders':                        'Crusaders',
+    'Coleraine':                        'Coleraine',
+    'Portadown':                        'Portadown',
+    'Larne':                            'Larne',
+    'Ballymena United':                 'Ballymena United',
+    'Cork City':                        'Cork City',
+    'Shamrock Rovers':                  'Shamrock Rovers',
+    'Bohemians':                        'Bohemians',
+    'Bohemian':                         'Bohemians',
+    'Derry City':                       'Derry City',
+    'St Patrick\'s Athletic':           'St Patrick\'s Athletic',
+    'Drogheda United':                  'Drogheda United',
+    'Shelbourne':                       'Shelbourne',
+    'TNS':                              'The New Saints',
+    'The New Saints':                   'The New Saints',
+    'Bala Town':                        'Bala Town',
+    'Connah\'s Quay Nomads':            'Connah\'s Quay Nomads',
+    'Bangor City':                      'Bangor City',
+    'Llanelli':                         'Llanelli',
+    'Rhyl':                             'Rhyl',
+    'Marsaxlokk':                       'Marsaxlokk',
+    'Birkirkara':                       'Birkirkara',
+    'Hibernians':                       'Hibernians',
+    'Floriana':                         'Floriana',
+    'Sliema Wanderers':                 'Sliema Wanderers',
+    'Valletta':                         'Valletta',
+    'Balzan':                           'Balzan',
+    'Gżira United':                     'Gżira United',
+    'Tre Fiori':                        'Tre Fiori',
+    'Tre Penne':                        'SP Tre Penne',
+    'La Fiorita':                       'La Fiorita',
+    'Folgore':                          'SS Folgore/Falciano',
+    'Murata':                           'Murata',
+    'Domagnano':                        'SS Domagnano',
+    'Pennarossa':                       'SP Pennarossa',
+    'Cosmos':                           'SS Cosmos',
 }
 
 def normalize_team(raw_name):
@@ -599,6 +1082,68 @@ def load_champs_engsoccerdata(season):
 
 
 # ============================================================
+# STEP 1c - LOAD HISTORICAL UEFA CUP / EUROPA LEAGUE
+# ============================================================
+# Phase 2 backfill: scrape_el_uefacup.py produces a static CSV of UEFA Cup
+# and Europa League matches from 2004-05 through 2019-20 (sourced from
+# Wikipedia season sub-pages). The 2020-21+ era is already covered by
+# openfootball/champions-league el.txt files via parse_european_txt.
+#
+# The CSV schema mirrors champs.csv: date, home, visitor, FT, hgoal, vgoal,
+# comp_season, shootout_winner. We label everything as 'Europa League' even
+# for the pre-2009 UEFA Cup era — they're a single continuous competition
+# lineage and the front-end only knows EL/CL/Conference League.
+
+_uefacup_historical_df = None
+
+def _load_uefacup_historical():
+    global _uefacup_historical_df
+    if _uefacup_historical_df is not None:
+        return _uefacup_historical_df
+    try:
+        _uefacup_historical_df = pd.read_csv('uefacup_historical.csv')
+    except FileNotFoundError:
+        print("  Warning: uefacup_historical.csv not found — skipping UEFA Cup backfill")
+        _uefacup_historical_df = pd.DataFrame()
+    return _uefacup_historical_df
+
+
+def load_uefacup_historical(season):
+    """Return UEFA Cup / Europa League matches for the given season string
+    (e.g., '2005-06') as dict-list matching the schema used elsewhere."""
+    df_csv = _load_uefacup_historical()
+    if df_csv.empty:
+        return []
+    sdf = df_csv[df_csv['comp_season'] == season].copy()
+    if sdf.empty:
+        return []
+    sdf = sdf.dropna(subset=['date', 'home', 'visitor', 'hgoal', 'vgoal'])
+    rows = []
+    for _, m in sdf.iterrows():
+        try:
+            parsed_date = pd.to_datetime(m['date'])
+        except Exception:
+            continue
+        sw_raw = m.get('shootout_winner')
+        if pd.notna(sw_raw) and isinstance(sw_raw, str) and sw_raw.strip():
+            shootout_winner = normalize_team(sw_raw.strip())
+        else:
+            shootout_winner = None
+        rows.append({
+            'date':            parsed_date.strftime('%Y-%m-%d'),
+            'home_team':       normalize_team(str(m['home']).strip()),
+            'away_team':       normalize_team(str(m['visitor']).strip()),
+            'home_score':      int(m['hgoal']),
+            'away_score':      int(m['vgoal']),
+            'competition':     'Europa League',
+            'comp_season':     season,
+            'neutral':         False,
+            'shootout_winner': shootout_winner,
+        })
+    return rows
+
+
+# ============================================================
 # STEP 2 - PARSE EUROPEAN COMPETITION TXT (CL + EL)
 # ============================================================
 # Used for both Champions League (cl.txt) and Europa League (el.txt).
@@ -738,9 +1283,6 @@ for season in ALL_SEASONS:
     season_year = int(season[:4])
     if season_year <= LAST_LEGACY_SEASON_YEAR:
         # 1992-93 -> 2010-11: engsoccerdata for both domestic and Champions League.
-        # Europa League / UEFA Cup and Cup Winners' Cup are intentionally
-        # skipped here — see Phase 2 in plan; openfootball doesn't cover them
-        # for these seasons either.
         all_rows.extend(load_domestic_engsoccerdata(season))
         all_rows.extend(load_champs_engsoccerdata(season))
     else:
@@ -751,6 +1293,11 @@ for season in ALL_SEASONS:
         # Conference League launched 2021-22.
         if season_year >= 2021:
             all_rows.extend(parse_european_txt(season, 'Conference League', 'conf.txt'))
+    # UEFA Cup / Europa League historical backfill: 2004-05 -> 2019-20.
+    # openfootball coverage of EL only starts at 2020-21, so we layer in the
+    # Wikipedia-scraped CSV for the gap. See scrape_el_uefacup.py.
+    if 2004 <= season_year <= 2019:
+        all_rows.extend(load_uefacup_historical(season))
 
 df = pd.DataFrame(all_rows)
 df['date'] = pd.to_datetime(df['date'])
@@ -866,14 +1413,16 @@ lastmatch_df['date'] = pd.to_datetime(lastmatch_df['date']).dt.date
 # linear recency weighting by game days (not calendar days).
 # Breaks and international windows do not count against recency.
 # No tournament weights — all club games are competitive by definition.
-# Incremental: skips date IDs already in zidane_ratings.csv.
+# Incremental: skips date IDs already in zidane_ratings.csv.gz.
+# Stored gzipped because the uncompressed file exceeds GitHub's 100MB
+# per-file limit once the historical backfill is included.
 
 print("Starting ZIDANE rating calculations...")
 
 max_date_id = int(df['grouped_date_id'].max())
 
 try:
-    zidane_df = pd.read_csv('zidane_ratings.csv')
+    zidane_df = pd.read_csv('zidane_ratings.csv.gz')
     max_ranked = int(zidane_df['ranking_id'].max())
     min_ranked = int(zidane_df['ranking_id'].min())
     print(f"Existing ratings found. Ranked IDs: {min_ranked} to {max_ranked}")
@@ -951,8 +1500,8 @@ for i in range(1, max_date_id + 1):
 zidane_df.sort_values(['ranking_id', 'name'], inplace=True)
 zidane_df.drop_duplicates(keep='first', inplace=True)
 zidane_df['ranking_date'] = pd.to_datetime(zidane_df['ranking_date']).dt.date
-zidane_df.to_csv('zidane_ratings.csv', index=False)
-print("zidane_ratings.csv saved!")
+zidane_df.to_csv('zidane_ratings.csv.gz', index=False, compression='gzip')
+print("zidane_ratings.csv.gz saved!")
 
 # ============================================================
 # STEP 10b - COMPUTE STANDINGS BY COMPETITION
