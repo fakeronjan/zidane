@@ -47,8 +47,24 @@ FDCO_LEAGUE_CODES = {
     'Ligue 1':    'F1',
 }
 
-# All 5 leagues + CL present from 2011-12 onward
-FIRST_SEASON_YEAR = 2011
+# Historical backfill source: jalapic/engsoccerdata raw CSVs.
+# Used for 1992-93 through 2010-11 (before openfootball/CL coverage and to
+# extend domestic coverage further back than football-data.co.uk's 1994-95).
+# Schema: Date, Season, home, visitor, FT, hgoal, vgoal, tier, ...
+# "Season=1992" denotes the 1992-93 campaign (autumn-spring).
+ENGSOCCERDATA_BASE = 'https://raw.githubusercontent.com/jalapic/engsoccerdata/master/data-raw'
+ENGSOCCERDATA_FILES = {
+    'EPL':        'england.csv',
+    'La Liga':    'spain.csv',
+    'Bundesliga': 'germany.csv',
+    'Serie A':    'italy.csv',
+    'Ligue 1':    'france.csv',
+}
+
+# Switchover: pre-LAST_LEGACY_SEASON_YEAR uses engsoccerdata, post uses
+# football-data.co.uk + openfootball (the existing pipeline).
+LAST_LEGACY_SEASON_YEAR = 2010   # 2010-11 is the last legacy season
+FIRST_SEASON_YEAR       = 1992   # 1992-93: EPL rebrand + CL rebrand
 
 # Dynamically compute the current season
 _today = date.today()
@@ -309,6 +325,119 @@ TEAM_NAME_MAP = {
     'Sporting CP':                      'Sporting Clube de Portugal',
     'Sturm Graz':                       'SK Sturm Graz',
     'Union Saint-Gilloise':             'Royale Union Saint-Gilloise',
+
+    # ====================================================================
+    # HISTORICAL — engsoccerdata name variants (1992-93 → 2010-11)
+    # Map any engsoccerdata variant to the same canonical used post-2011 so
+    # teams that span both eras don't appear as duplicates in standings/output.
+    # Defunct top-flight teams get a canonical name in the prevailing local
+    # convention.
+    # ====================================================================
+
+    # England (engsoccerdata uses common names without "FC")
+    'Barnsley':                         'Barnsley FC',
+    'Birmingham City':                  'Birmingham City FC',
+    'Blackburn Rovers':                 'Blackburn Rovers FC',
+    'Blackpool':                        'Blackpool FC',
+    'Bolton Wanderers':                 'Bolton Wanderers FC',
+    'Bradford City':                    'Bradford City AFC',
+    'Charlton Athletic':                'Charlton Athletic FC',
+    'Coventry City':                    'Coventry City FC',
+    'Derby County':                     'Derby County FC',
+    'Hull City':                        'Hull City AFC',
+    'Ipswich Town':                     'Ipswich Town FC',
+    'Leeds United':                     'Leeds United FC',
+    'Nottingham Forest':                'Nottingham Forest FC',
+    'Oldham Athletic':                  'Oldham Athletic AFC',
+    'Portsmouth':                       'Portsmouth FC',
+    'Queens Park Rangers':              'Queens Park Rangers FC',
+    'Sheffield Wednesday':              'Sheffield Wednesday FC',
+    'Stoke City':                       'Stoke City FC',
+    'Swindon Town':                     'Swindon Town FC',
+    'Wigan Athletic':                   'Wigan Athletic FC',
+    'Wimbledon':                        'Wimbledon FC',
+
+    # Spain (engsoccerdata mixes accented and English-stripped variants)
+    'Athletic Bilbao':                  'Athletic Club de Bilbao',
+    'Cadiz CF':                         'Cádiz CF',
+    'CD Logrones':                      'CD Logroñés',
+    'CD Numancia':                      'CD Numancia',
+    'CF Extremadura':                   'CF Extremadura',
+    'CP Merida':                        'CP Mérida',
+    'Deportivo La Coruna':              'Deportivo de La Coruña',
+    'Gimnastic':                        'Gimnàstic de Tarragona',
+    'Hercules CF':                      'Hércules CF',
+    'Malaga CF':                        'Málaga CF',
+    'Racing Santander':                 'Racing de Santander',
+    'SD Compostela':                    'SD Compostela',
+    'Sporting Gijon':                   'Sporting de Gijón',
+    'UD Almeria':                       'UD Almería',
+    'UD Salamanca':                     'UD Salamanca',
+    'UE Lleida':                        'UE Lleida',
+    'Xerez CD':                         'Xerez CD',
+
+    # Germany (engsoccerdata has a unique style with "1." prefix and no umlauts)
+    '1. FC Koln':                       '1. FC Köln',
+    '1. FC Nurnberg':                   '1. FC Nürnberg',
+    '1. FC Saarbrucken':                '1. FC Saarbrücken',
+    'Bayer 05 Uerdingen':               'KFC Uerdingen 05',
+    'Bayern Munchen':                   'FC Bayern München',
+    'Bor. Monchengladbach':             'Borussia Mönchengladbach',
+    'TSV 1860 Munchen':                 'TSV 1860 München',
+    'VfL Bochum':                       'VfL Bochum 1848',
+
+    # Italy (engsoccerdata sometimes prefixes; sometimes uses old names)
+    'Bologna FC':                       'Bologna FC 1909',
+    'Chievo Verona':                    'AC ChievoVerona',
+    'Inter':                            'FC Internazionale Milano',
+    'Lazio Roma':                       'SS Lazio',
+    'Parma AC':                         'Parma Calcio 1913',
+    'US Palermo':                       'US Città di Palermo',
+
+    # France
+    'AS Monaco':                        'AS Monaco FC',
+    'AS Nancy':                         'AS Nancy-Lorraine',
+    'AS Saint-Etienne':                 'AS Saint-Étienne',
+    'ATAC Troyes':                      'ESTAC Troyes',
+    'EA Guingamp':                      'En Avant de Guingamp',
+    'FC Sochaux':                       'FC Sochaux-Montbéliard',
+    'Girondins Bordeaux':               'FC Girondins de Bordeaux',
+    'Nimes Olympique':                  'Nîmes Olympique',
+    'SM Caen':                          'Stade Malherbe Caen',
+    'Stade Brest':                      'Stade Brestois 29',
+    'Stade Rennes':                     'Stade Rennais FC 1901',
+
+    # Champions League — engsoccerdata variants
+    'AFC Ajax':                         'AFC Ajax',
+    'Bayern Munich':                    'FC Bayern München',
+    'Crvena Zvezda':                    'FK Crvena Zvezda',
+    'CSKA Moskva':                      'PFC CSKA Moskva',
+    'Dinamo Bucuresti':                 'FC Dinamo București',
+    'Dinamo Kiev':                      'FC Dynamo Kyiv',
+    'Dinamo Moskva':                    'FC Dynamo Moscow',
+    'Dynamo Kyiv':                      'FC Dynamo Kyiv',
+    'FC Porto':                         'FC Porto',
+    'Grasshoppers Zurich':              'Grasshopper Club Zürich',
+    'Kobenhavn':                        'FC København',
+    'Lazio':                            'SS Lazio',
+    'Lokomotiv Moskva':                 'FC Lokomotiv Moscow',
+    'Olympiacos':                       'Olympiakos Piraeus',
+    'Panathinaikos':                    'Panathinaikos FC',
+    'Partizan Belgrade':                'FK Partizan',
+    'Rangers':                          'Rangers FC',
+    'Rapid Bucuresti':                  'FC Rapid București',
+    'Rapid Wien':                       'SK Rapid Wien',
+    'Schalke 04':                       'FC Schalke 04',
+    'Sevilla':                          'Sevilla FC',
+    'Spartak Moskva':                   'FC Spartak Moscow',
+    'Steaua Bucuresti':                 'FCSB',
+    'Twente':                           'FC Twente',
+    'Valencia CF':                      'Valencia CF',
+    'Villarreal':                       'Villarreal CF',
+    'Vitoria Guimaraes':                'Vitória SC',
+    'Werder Bremen':                    'SV Werder Bremen',
+    'Zenit St. Petersburg':             'FC Zenit Saint Petersburg',
+    'sc Heerenveen':                    'sc Heerenveen',
 }
 
 def normalize_team(raw_name):
@@ -357,6 +486,117 @@ def load_domestic_fdco(season):
         except Exception as e:
             print(f"  Warning: could not load {league} {season}: {e}")
     return rows
+
+# ============================================================
+# STEP 1b - LOAD HISTORICAL DOMESTIC + CL FROM ENGSOCCERDATA
+# ============================================================
+# jalapic/engsoccerdata provides clean CSVs for the 5 domestic leagues
+# (1888-2024 for England, similar coverage for others) and Champions League /
+# European Cup (1955-2017). We use it for the 1992-93 -> 2010-11 backfill
+# window only — the existing fdco + openfootball pipeline takes over from
+# 2011-12 onward.
+#
+# Season convention: row Season=N denotes the N -> N+1 campaign.
+# Bundesliga file mixes tier 1 + tier 2; we filter to tier=1 only.
+# The "FT" column has form "H-A" (e.g., "2-1"); hgoal/vgoal already split.
+
+# Module-level cache so each CSV downloads once across all seasons.
+_engsoccerdata_cache = {}
+
+def _load_engsoccerdata_csv(filename):
+    if filename in _engsoccerdata_cache:
+        return _engsoccerdata_cache[filename]
+    url = f'{ENGSOCCERDATA_BASE}/{filename}'
+    try:
+        r = requests.get(url, timeout=30)
+        r.raise_for_status()
+        df_csv = pd.read_csv(io.StringIO(r.text), low_memory=False)
+        _engsoccerdata_cache[filename] = df_csv
+        return df_csv
+    except Exception as e:
+        print(f"  Warning: could not load engsoccerdata {filename}: {e}")
+        _engsoccerdata_cache[filename] = pd.DataFrame()
+        return _engsoccerdata_cache[filename]
+
+
+def load_domestic_engsoccerdata(season):
+    """Load all 5 domestic leagues for the given season string (e.g., '1992-93')
+    from engsoccerdata CSVs. Returns dict-list matching load_domestic_fdco schema."""
+    season_year = int(season[:4])
+    rows = []
+    for league, filename in ENGSOCCERDATA_FILES.items():
+        df_csv = _load_engsoccerdata_csv(filename)
+        if df_csv.empty:
+            continue
+        sdf = df_csv[df_csv['Season'] == season_year].copy()
+        if 'tier' in sdf.columns:
+            sdf = sdf[sdf['tier'] == 1]
+        if sdf.empty:
+            print(f"  Warning: engsoccerdata {league} {season} has no rows")
+            continue
+        sdf = sdf.dropna(subset=['Date', 'home', 'visitor', 'hgoal', 'vgoal'])
+        for _, m in sdf.iterrows():
+            try:
+                parsed_date = pd.to_datetime(m['Date'])
+            except Exception:
+                continue
+            rows.append({
+                'date':            parsed_date.strftime('%Y-%m-%d'),
+                'home_team':       normalize_team(str(m['home']).strip()),
+                'away_team':       normalize_team(str(m['visitor']).strip()),
+                'home_score':      int(m['hgoal']),
+                'away_score':      int(m['vgoal']),
+                'competition':     league,
+                'neutral':         False,
+                'shootout_winner': None,
+            })
+    return rows
+
+
+def load_champs_engsoccerdata(season):
+    """Load Champions League / European Cup for the given season from
+    engsoccerdata's champs.csv. Sets comp_season so the CL champion logic
+    in step 10c works the same way as the openfootball-derived rows."""
+    season_year = int(season[:4])
+    df_csv = _load_engsoccerdata_csv('champs.csv')
+    if df_csv.empty:
+        return []
+    sdf = df_csv[df_csv['Season'] == season_year].copy()
+    if sdf.empty:
+        return []
+    sdf = sdf.dropna(subset=['Date', 'home', 'visitor', 'hgoal', 'vgoal'])
+    rows = []
+    for _, m in sdf.iterrows():
+        try:
+            parsed_date = pd.to_datetime(m['Date'])
+        except Exception:
+            continue
+        # pens column: e.g. "5-4" if a shootout was played, NaN otherwise.
+        # When present, the AET score is in hgoal/vgoal and we encode the
+        # shootout winner so step 5 can override the margin to ±0.5.
+        shootout_winner = None
+        pens_val = m.get('pens')
+        if pd.notna(pens_val) and isinstance(pens_val, str) and '-' in pens_val:
+            try:
+                ph, pa = (int(x) for x in pens_val.split('-'))
+                home_norm = normalize_team(str(m['home']).strip())
+                away_norm = normalize_team(str(m['visitor']).strip())
+                shootout_winner = home_norm if ph > pa else away_norm
+            except Exception:
+                shootout_winner = None
+        rows.append({
+            'date':            parsed_date.strftime('%Y-%m-%d'),
+            'home_team':       normalize_team(str(m['home']).strip()),
+            'away_team':       normalize_team(str(m['visitor']).strip()),
+            'home_score':      int(m['hgoal']),
+            'away_score':      int(m['vgoal']),
+            'competition':     'Champions League',
+            'comp_season':     season,
+            'neutral':         False,
+            'shootout_winner': shootout_winner,
+        })
+    return rows
+
 
 # ============================================================
 # STEP 2 - PARSE EUROPEAN COMPETITION TXT (CL + EL)
@@ -495,9 +735,22 @@ print("Loading all game data...")
 all_rows = []
 for season in ALL_SEASONS:
     print(f"  Loading {season}...")
-    all_rows.extend(load_domestic_fdco(season))
-    all_rows.extend(parse_european_txt(season, 'Champions League', 'cl.txt'))
-    all_rows.extend(parse_european_txt(season, 'Europa League',    'el.txt'))
+    season_year = int(season[:4])
+    if season_year <= LAST_LEGACY_SEASON_YEAR:
+        # 1992-93 -> 2010-11: engsoccerdata for both domestic and Champions League.
+        # Europa League / UEFA Cup and Cup Winners' Cup are intentionally
+        # skipped here — see Phase 2 in plan; openfootball doesn't cover them
+        # for these seasons either.
+        all_rows.extend(load_domestic_engsoccerdata(season))
+        all_rows.extend(load_champs_engsoccerdata(season))
+    else:
+        # 2011-12 onward: original pipeline.
+        all_rows.extend(load_domestic_fdco(season))
+        all_rows.extend(parse_european_txt(season, 'Champions League', 'cl.txt'))
+        all_rows.extend(parse_european_txt(season, 'Europa League',    'el.txt'))
+        # Conference League launched 2021-22.
+        if season_year >= 2021:
+            all_rows.extend(parse_european_txt(season, 'Conference League', 'conf.txt'))
 
 df = pd.DataFrame(all_rows)
 df['date'] = pd.to_datetime(df['date'])
@@ -748,8 +1001,11 @@ print("Detecting competition finishes...")
 
 def season_is_complete(season_str):
     """A season YYYY-YY is complete once today is past July 31 of the end year.
-    This clears the CL final (late May/June) before marking anything done."""
-    end_year = int('20' + season_str[-2:])
+    This clears the CL final (late May/June) before marking anything done.
+    Derives end_year from the 4-digit start year so historical seasons like
+    "1992-93" don't get parsed as 2092-93."""
+    start_year = int(season_str[:4])
+    end_year   = start_year + 1
     return date.today() > date(end_year, 7, 31)
 
 domestic_records = []
@@ -923,7 +1179,7 @@ final_df.drop(columns=['dom_final_date'], inplace=True)
 # date_to_season boundary (i.e. the August 2020 bubble), so that the season
 # column remains consistent with the EOS flag.
 dom_season_max = dom_games.groupby('season')['date'].max().rename('dom_end')
-euro_games_df  = df[df['competition'].isin(['Champions League', 'Europa League'])].dropna(subset=['comp_season'])
+euro_games_df  = df[df['competition'].isin(['Champions League', 'Europa League', 'Conference League'])].dropna(subset=['comp_season'])
 euro_season_max = euro_games_df.groupby('comp_season')['date'].max().rename('euro_end')
 season_bounds = (
     pd.merge(dom_season_max, euro_season_max, left_index=True, right_index=True, how='outer')

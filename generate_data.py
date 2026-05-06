@@ -19,8 +19,10 @@ df['date'] = pd.to_datetime(df['date']).dt.date
 df['last_match_date'] = pd.to_datetime(df['last_match_date'], errors='coerce').dt.date
 
 def season_is_complete(season_str):
-    """Season YYYY-YY is complete once today is past July 31 of its end year."""
-    end_year = int('20' + season_str[-2:])
+    """Season YYYY-YY is complete once today is past July 31 of its end year.
+    Derives end_year from the 4-digit start year so "1992-93" parses correctly."""
+    start_year = int(season_str[:4])
+    end_year   = start_year + 1
     return date.today() > date(end_year, 7, 31)
 
 # Fix finish labels for any in-progress seasons still in the cached CSV.
@@ -199,8 +201,14 @@ with open('docs/data/current_standings.json', 'w') as f:
     json.dump(standings_data, f, separators=(',', ':'))
 
 # ── 2. GOAT table ─────────────────────────────────────────────────────────────
+# Exclude the first three seasons (1992-93 → 1994-95) — the rolling Massey
+# window is still filling with cross-league CL data, which lets dominant
+# intra-league clusters (early-90s Serie A in particular) inflate to
+# non-comparable ratings. By 1995-96 the network has stabilized.
+GOAT_WARMUP_SEASONS = {'1992-93', '1993-94', '1994-95'}
+
 print("Writing goat_teams.json...")
-eos = df[df['is_end_of_season'] == 1].copy()
+eos = df[(df['is_end_of_season'] == 1) & (~df['season'].isin(GOAT_WARMUP_SEASONS))].copy()
 eos = eos.sort_values('rating', ascending=False).head(50).reset_index(drop=True)
 
 goat_data = [
