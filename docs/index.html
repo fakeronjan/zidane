@@ -820,6 +820,7 @@ function renderGoat() {
     <td class="team-cell">${t.team}</td>
     <td>${leagueBadge(t.league)}</td>
     <td>${ratingBar(t.rating)}</td>
+    <td style="font-variant-numeric:tabular-nums;white-space:nowrap" class="col-hide-mobile">${fmtRecord(t.record)}</td>
     <td class="col-hide-mobile" style="font-size:11px">${finishBadge(t.domestic_finish, t.cl_finish, t.el_finish, t.league)}</td>
   </tr>`).join('');
 
@@ -830,6 +831,7 @@ function renderGoat() {
         <th style="text-align:center">Season</th>
         <th>Team</th><th>League</th>
         <th>Rating</th>
+        <th class="col-hide-mobile">LG Record</th>
         <th class="col-hide-mobile">Honors</th>
       </tr></thead>
       <tbody>${rows}</tbody>

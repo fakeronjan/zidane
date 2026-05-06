@@ -211,6 +211,19 @@ print("Writing goat_teams.json...")
 eos = df[(df['is_end_of_season'] == 1) & (~df['season'].isin(GOAT_WARMUP_SEASONS))].copy()
 eos = eos.sort_values('rating', ascending=False).head(50).reset_index(drop=True)
 
+# End-of-season domestic record per (team, season) — used by GOAT and the
+# Champions table. Built once here so both can share the lookup.
+final_record_lookup = {
+    (row['team'], row['season']): row['record']
+    for _, row in (
+        all_g.sort_values('date')
+        .groupby(['team', 'season'])
+        .last()
+        .reset_index()[['team', 'season', 'record']]
+        .iterrows()
+    )
+}
+
 goat_data = [
     {
         'rank':            i + 1,
@@ -218,6 +231,7 @@ goat_data = [
         'season':          r['season'],
         'league':          clean(r['league']),
         'rating':          round(float(r['rating']), 3),
+        'record':          final_record_lookup.get((r['team'], r['season']), '—'),
         'domestic_finish': clean(r['domestic_finish']),
         'cl_finish':       clean(r['cl_finish']),
         'el_finish':       clean(r['el_finish']),
@@ -354,17 +368,7 @@ print("Writing champions.json...")
 
 eos = df[df['is_end_of_season'] == 1].copy()
 
-# Final domestic W-D-L per team per season
-final_record_lookup = {
-    (row['team'], row['season']): row['record']
-    for _, row in (
-        all_g.sort_values('date')
-        .groupby(['team', 'season'])
-        .last()
-        .reset_index()[['team', 'season', 'record']]
-        .iterrows()
-    )
-}
+# final_record_lookup is defined alongside the GOAT block above and reused here.
 
 # Domestic champion detection from raw game points.
 # zidane.py merges domestic_finish before patching the season on CL-bubble EOS rows
