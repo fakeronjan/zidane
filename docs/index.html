@@ -407,7 +407,7 @@ function ratingBar(rating) {
     leftPct  = 50 - widthPct;
   }
   return `<div class="rating-bar-wrap">
-    <span class="rating-cell">${rating.toFixed(3)}</span>
+    <span class="rating-cell">${rating.toFixed(2)}</span>
     <div class="rating-bar-track">
       <div class="rating-bar-center-line"></div>
       <div class="rating-bar-fill ${rating >= 0 ? 'bar-pos' : 'bar-neg'}" style="left:${leftPct.toFixed(1)}%;width:${widthPct.toFixed(1)}%"></div>
@@ -737,7 +737,7 @@ function renderLeagueHistory(league) {
   function teamCell(t, bg) {
     if (!t) return `<td class="${bg}" colspan="5">—</td>`;
     const honors  = honorBadges(t);
-    const rating  = t.rating  != null ? t.rating.toFixed(3) : '—';
+    const rating  = t.rating  != null ? t.rating.toFixed(2) : '—';
     const ovrRank = t.rank    != null ? `#${t.rank}` : '—';
     const lgRank  = t.lg_rank != null ? `#${t.lg_rank}` : '—';
     return `
