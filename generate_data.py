@@ -104,6 +104,13 @@ all_g = pd.concat([
     away_g[['date', 'season', 'team', 'result']],
 ]).sort_values(['team', 'season', 'date']).reset_index(drop=True)
 
+# COVID patch: Serie A finished Aug 1-2, 2020. No other domestic league played in August 2020,
+# so any domestic game in Aug 2020 belongs to the 2019-20 season, not 2020-21.
+all_g.loc[
+    (all_g['date'].dt.year == 2020) & (all_g['date'].dt.month == 8),
+    'season',
+] = '2019-20'
+
 all_g['is_w'] = (all_g['result'] == 'W').astype(int)
 all_g['is_d'] = (all_g['result'] == 'D').astype(int)
 all_g['is_l'] = (all_g['result'] == 'L').astype(int)
@@ -284,9 +291,17 @@ for comp, lbl in [('Champions League', 'CL Final'), ('Europa League', 'EL Final'
             continue
         add_label(str(grp['date'].max().date()), lbl)
 
-# Group all ranking snapshots by snapshot date's season (pure date-based, no override)
+# Group all ranking snapshots by snapshot date's season
 snap_df = df.copy()
 snap_df['snapshot_season'] = snap_df['date'].apply(date_to_season)
+
+# COVID patch: every snapshot in August 2020 belongs to 2019-20.
+# That month was the CL/EL bubble (Quarters → Final, Aug 12-23) plus the
+# final Serie A matchday (Aug 1-2). No 2020-21 domestic season played that month.
+snap_df.loc[
+    snap_df['date'].apply(lambda d: d.year == 2020 and d.month == 8),
+    'snapshot_season',
+] = '2019-20'
 
 all_seasons = sorted(snap_df['snapshot_season'].unique())
 
