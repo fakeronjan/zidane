@@ -5,6 +5,9 @@ on:
     - cron: '19 8 * * *'  # 8:19 AM UTC daily (after overnight European results)
   workflow_dispatch:        # allow manual trigger from GitHub UI
 
+permissions:
+  contents: write           # needed for git push
+
 jobs:
   update:
     runs-on: ubuntu-latest
@@ -32,5 +35,9 @@ jobs:
           git config user.name  "ZIDANE Bot"
           git config user.email "zidane-bot@users.noreply.github.com"
           git add all_club_games.csv zidane_ratings.csv docs/data/
-          git diff --staged --quiet && echo "No changes to commit." || \
-            git commit -m "Update ratings $(date -u '+%Y-%m-%d')" && git push
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Update ratings $(date -u '+%Y-%m-%d')"
+            git push
+          fi
