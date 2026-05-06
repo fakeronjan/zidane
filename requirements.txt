@@ -1,4 +1,4 @@
 pandas
-numpy
+numpy<2
 requests
 rankit==0.2
