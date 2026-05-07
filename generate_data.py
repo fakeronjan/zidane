@@ -28,12 +28,17 @@ def season_is_complete(season_str):
 # Fix finish labels for any in-progress seasons still in the cached CSV.
 # zidane.py now handles this correctly on a fresh run; this patch covers
 # the window between the code change and the next cron execution.
+# Backwards-compat: an older cached CSV may not have domestic_cup_finish.
+if 'domestic_cup_finish' not in df.columns:
+    df['domestic_cup_finish'] = ''
+
 for season in df['season'].unique():
     if not season_is_complete(season):
         df.loc[(df['season'] == season) & (df['domestic_finish'] == 'Champion'), 'domestic_finish'] = '1st'
         df.loc[(df['season'] == season) & (df['domestic_finish'] == 'Runner-Up'), 'domestic_finish'] = '2nd'
         df.loc[df['season'] == season, 'cl_finish'] = ''
         df.loc[df['season'] == season, 'el_finish'] = ''
+        df.loc[df['season'] == season, 'domestic_cup_finish'] = ''
 
 def clean(val):
     if pd.isna(val):
@@ -192,6 +197,7 @@ standings_data = {
             'domestic_finish': clean(r['domestic_finish']),
             'cl_finish':       clean(r['cl_finish']),
             'el_finish':       clean(r['el_finish']),
+            'domestic_cup_finish': clean(r.get('domestic_cup_finish', '')),
         }
         for _, r in latest.iterrows()
     ]
@@ -273,6 +279,7 @@ for team in all_teams:
                 'domestic_finish':   clean(r['domestic_finish']),
                 'cl_finish':         clean(r['cl_finish']),
                 'el_finish':         clean(r['el_finish']),
+                'domestic_cup_finish': clean(r.get('domestic_cup_finish', '')),
             }
             for _, r in sdf.sort_values('date').iterrows()
         ]
@@ -346,6 +353,7 @@ for season in all_seasons:
                 'domestic_finish': clean(r['domestic_finish']),
                 'cl_finish':       clean(r['cl_finish']),
                 'el_finish':       clean(r['el_finish']),
+            'domestic_cup_finish': clean(r.get('domestic_cup_finish', '')),
             }
             for _, r in rdf.iterrows()
         ]
@@ -409,7 +417,7 @@ def _dom_entry(team_name, finish_label, season_str):
     if team_eos.empty:
         return {'team': team_name, 'league': '', 'rating': None, 'rank': None, 'lg_rank': None,
                 'record': final_record_lookup.get((team_name, season_str), '—'),
-                'domestic_finish': finish_label, 'cl_finish': '', 'el_finish': ''}
+                'domestic_finish': finish_label, 'cl_finish': '', 'el_finish': '', 'domestic_cup_finish': ''}
     r = team_eos.iloc[0]
     return {
         'team':            team_name,
@@ -421,13 +429,14 @@ def _dom_entry(team_name, finish_label, season_str):
         'domestic_finish': finish_label,
         'cl_finish':       clean(r['cl_finish']),
         'el_finish':       clean(r['el_finish']),
+        'domestic_cup_finish': clean(r.get('domestic_cup_finish', '')),
     }
 
 def euro_team_dict(team, season):
     team_eos = eos[(eos['team'] == team) & (eos['season'] == season)]
     if team_eos.empty:
         return {'team': team, 'league': '', 'rating': None, 'rank': None, 'lg_rank': None, 'record': '—',
-                'domestic_finish': '', 'cl_finish': '', 'el_finish': ''}
+                'domestic_finish': '', 'cl_finish': '', 'el_finish': '', 'domestic_cup_finish': ''}
     row = team_eos.iloc[0]
     return {
         'team':             team,
@@ -439,6 +448,7 @@ def euro_team_dict(team, season):
         'domestic_finish':  clean(row['domestic_finish']),
         'cl_finish':        clean(row['cl_finish']),
         'el_finish':        clean(row['el_finish']),
+        'domestic_cup_finish': clean(row.get('domestic_cup_finish', '')),
     }
 
 champions = {}
