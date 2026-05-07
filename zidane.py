@@ -66,6 +66,24 @@ ENGSOCCERDATA_FILES = {
 LAST_LEGACY_SEASON_YEAR = 2010   # 2010-11 is the last legacy season
 FIRST_SEASON_YEAR       = 1992   # 1992-93: EPL rebrand + CL rebrand
 
+# Domestic cup data sources (Phase 3). Each cup uses the most reliable source
+# for each era. Wikipedia gap-fill for the historical pre-openfootball window
+# is loaded from a separate static CSV (cups_historical.csv) — see
+# scrape_domestic_cups.py.
+OPENFOOTBALL_COUNTRY_BASE = 'https://raw.githubusercontent.com/openfootball'
+
+# (cup_name, country_repo, filename, first_openfootball_season)
+# first_openfootball_season is the earliest year openfootball *actually*
+# has cup.txt for that country — anything earlier is loaded from
+# cups_historical.csv (Wikipedia scrape) instead.
+DOMESTIC_CUPS = [
+    ('FA Cup',          'england',     'facup.txt',     2018),  # engsoccerdata covers pre-2018
+    ('DFB-Pokal',       'deutschland', 'cup.txt',       2018),  # openfootball cup.txt only 2018-19+
+    ('Copa del Rey',    'espana',      'cup.txt',       2020),  # openfootball cup.txt only 2020-21+
+    ('Coppa Italia',    'italy',       'cup.txt',       2020),  # openfootball cup.txt only 2020-21+
+    # Coupe de France: no openfootball data — pure Wikipedia scrape, see Phase 3b
+]
+
 # Dynamically compute the current season
 _today = date.today()
 _cur_start = _today.year if _today.month >= 8 else _today.year - 1
@@ -1081,6 +1099,109 @@ def load_champs_engsoccerdata(season):
     return rows
 
 
+def load_facup_engsoccerdata(season):
+    """Load FA Cup matches for the given season from engsoccerdata facup.csv.
+    Coverage: 1871-2018 (138 seasons). Used for FA Cup history up to 2017-18;
+    openfootball/england facup.txt takes over from 2018-19 onward.
+    Schema: Date, Season, home, visitor, FT, hgoal, vgoal, round, tie, aet, pen, pens, hp, vp, ..."""
+    season_year = int(season[:4])
+    df_csv = _load_engsoccerdata_csv('facup.csv')
+    if df_csv.empty:
+        return []
+    sdf = df_csv[df_csv['Season'] == season_year].copy()
+    if sdf.empty:
+        return []
+    sdf = sdf.dropna(subset=['Date', 'home', 'visitor', 'hgoal', 'vgoal'])
+    rows = []
+    for _, m in sdf.iterrows():
+        try:
+            parsed_date = pd.to_datetime(m['Date'])
+        except Exception:
+            continue
+        # facup.csv stores penalty shootout info in 'pens' column as "h-a" string
+        # (e.g., "5-4") with hp/vp as integer counts. Use pens when hgoal == vgoal.
+        shootout_winner = None
+        if int(m['hgoal']) == int(m['vgoal']):
+            pens_val = m.get('pens')
+            if pd.notna(pens_val) and isinstance(pens_val, str) and '-' in pens_val:
+                try:
+                    ph, pa = (int(x) for x in pens_val.split('-'))
+                    home_norm = normalize_team(str(m['home']).strip())
+                    away_norm = normalize_team(str(m['visitor']).strip())
+                    shootout_winner = home_norm if ph > pa else away_norm
+                except Exception:
+                    pass
+        rows.append({
+            'date':            parsed_date.strftime('%Y-%m-%d'),
+            'home_team':       normalize_team(str(m['home']).strip()),
+            'away_team':       normalize_team(str(m['visitor']).strip()),
+            'home_score':      int(m['hgoal']),
+            'away_score':      int(m['vgoal']),
+            'competition':     'FA Cup',
+            'comp_season':     season,
+            'neutral':         False,
+            'shootout_winner': shootout_winner,
+        })
+    return rows
+
+
+# ============================================================
+# STEP 1d - LOAD HISTORICAL DOMESTIC CUPS
+# ============================================================
+# Phase 3b backfill: scrape_domestic_cups.py produces a static CSV of
+# DFB-Pokal / Copa del Rey / Coppa Italia matches for the historical era
+# before openfootball took over. Coverage is uneven by year — older
+# Wikipedia pages use a non-fevent format we can't fully parse, but the
+# finals are always captured (which is what champion / treble detection
+# needs). Where we have full rounds, those add rating signal too.
+
+_cups_historical_df = None
+
+def _load_cups_historical():
+    global _cups_historical_df
+    if _cups_historical_df is not None:
+        return _cups_historical_df
+    try:
+        _cups_historical_df = pd.read_csv('cups_historical.csv')
+    except FileNotFoundError:
+        print("  Warning: cups_historical.csv not found — skipping cup backfill")
+        _cups_historical_df = pd.DataFrame()
+    return _cups_historical_df
+
+
+def load_cup_historical(season, cup):
+    df_csv = _load_cups_historical()
+    if df_csv.empty:
+        return []
+    sdf = df_csv[(df_csv['comp_season'] == season) & (df_csv['cup'] == cup)].copy()
+    if sdf.empty:
+        return []
+    sdf = sdf.dropna(subset=['date', 'home', 'visitor', 'hgoal', 'vgoal'])
+    rows = []
+    for _, m in sdf.iterrows():
+        try:
+            parsed_date = pd.to_datetime(m['date'])
+        except Exception:
+            continue
+        sw_raw = m.get('shootout_winner')
+        if pd.notna(sw_raw) and isinstance(sw_raw, str) and sw_raw.strip():
+            shootout_winner = normalize_team(sw_raw.strip())
+        else:
+            shootout_winner = None
+        rows.append({
+            'date':            parsed_date.strftime('%Y-%m-%d'),
+            'home_team':       normalize_team(str(m['home']).strip()),
+            'away_team':       normalize_team(str(m['visitor']).strip()),
+            'home_score':      int(m['hgoal']),
+            'away_score':      int(m['vgoal']),
+            'competition':     cup,
+            'comp_season':     season,
+            'neutral':         False,
+            'shootout_winner': shootout_winner,
+        })
+    return rows
+
+
 # ============================================================
 # STEP 1c - LOAD HISTORICAL UEFA CUP / EUROPA LEAGUE
 # ============================================================
@@ -1163,9 +1284,11 @@ _MONTH_MAP = {
     'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
 }
 
-# Date line: optional day-of-week, then Mon/DD, optional year
+# Date line: optional day-of-week, then Mon/DD, optional year.
+# Some openfootball country-cup files wrap the date in square brackets like
+# "[Tue Sep/22]" — the regex tolerates either form.
 _RE_DATE = re.compile(
-    r'^\s+(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+([A-Za-z]+)/(\d{1,2})(?:\s+(\d{4}))?'
+    r'^\s*\[?\s*(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+([A-Za-z]+)/(\d{1,2})(?:\s+(\d{4}))?\s*\]?'
 )
 
 # Penalty match: "pen_h-pen_a pen. match_h-match_a a.e.t."
@@ -1188,8 +1311,44 @@ _RE_MATCH = re.compile(
     r'\s*$'
 )
 
-def parse_european_txt(season, competition, filename):
-    url = f'{CHAMPIONS_LEAGUE_BASE}/{season}/{filename}'
+# Some openfootball country-cup files (notably Coppa Italia 2020-21 → 2023-24)
+# use an older format that omits the " v " separator and writes the score
+# inline between the home and away team:
+#   "  20.30  Como 1907                3-4 pen. 2-2 a.e.t. (2-2, 1-0)  US Catanzaro"
+#   "  18.30  Ternana Calcio           4-3 pen. 1-1 a.e.t. (1-1, 0-1)  US Avellino"
+#   "  19.00  AC Perugia Calcio        1-0 (0-0)  FC Südtirol"
+# The split between team A and the score (and between the trailing
+# parenthetical and team B) is two-or-more spaces.
+_RE_OLDCUP_PEN = re.compile(
+    r'^\s+(?:\d{1,2}\.\d{2}\s+)?(.+?)\s{2,}'
+    r'(\d+)-(\d+)\s+pen\.\s+(\d+)-(\d+)\s+a\.e\.t\.'
+    r'(?:\s+\([\d\-,\s]+\))?'
+    r'\s{2,}(.+?)\s*$'
+)
+_RE_OLDCUP_AET = re.compile(
+    r'^\s+(?:\d{1,2}\.\d{2}\s+)?(.+?)\s{2,}'
+    r'(\d+)-(\d+)\s+a\.e\.t\.'
+    r'(?:\s+\([\d\-,\s]+\))?'
+    r'\s{2,}(.+?)\s*$'
+)
+_RE_OLDCUP_MATCH = re.compile(
+    r'^\s+(?:\d{1,2}\.\d{2}\s+)?(.+?)\s{2,}'
+    r'(\d+)-(\d+)'
+    r'(?:\s+\([\d\-,\s]+\))?'
+    r'\s{2,}(.+?)\s*$'
+)
+
+def parse_european_txt(season, competition, filename, repo_base=None):
+    """Parse a football.TXT file from openfootball. By default reads from
+    the champions-league repo; pass repo_base to read from a country repo
+    (e.g., openfootball/deutschland for DFB-Pokal cup.txt files).
+
+    Some country-cup files omit the year on the date line (older Coppa Italia
+    format uses just "[Tue Sep/22]"). When that happens we seed current_year
+    from the season string and flip it forward when we see a month wrap
+    (Dec → Jan)."""
+    base = repo_base if repo_base else CHAMPIONS_LEAGUE_BASE
+    url = f'{base}/{season}/{filename}'
     rows = []
     try:
         text = requests.get(url, timeout=10).text
@@ -1199,6 +1358,15 @@ def parse_european_txt(season, competition, filename):
 
     current_date = None
     current_year = None
+    last_month = None
+
+    # Seed current_year from the season string so files that never list a
+    # year (e.g., "[Tue Sep/22]") can still produce dates. The season starts
+    # in autumn of the start year and ends in spring of the end year.
+    try:
+        current_year = int(season[:4])
+    except Exception:
+        pass
 
     for line in text.splitlines():
         # Skip headers and blank lines
@@ -1209,10 +1377,17 @@ def parse_european_txt(season, competition, filename):
         dm = _RE_DATE.match(line)
         if dm:
             month_str, day_str, year_str = dm.group(1), dm.group(2), dm.group(3)
+            month_num = _MONTH_MAP.get(month_str)
             if year_str:
+                # Explicit year on the line — trust it, don't apply month-wrap.
                 current_year = int(year_str)
-            if current_year and month_str in _MONTH_MAP:
-                current_date = f"{current_year}-{_MONTH_MAP[month_str]:02d}-{int(day_str):02d}"
+            elif month_num and current_year and last_month is not None:
+                # No explicit year. Detect month wrap (Dec -> Jan) and bump.
+                if month_num < last_month and (last_month - month_num) >= 6:
+                    current_year += 1
+            if month_num and current_year:
+                current_date = f"{current_year}-{month_num:02d}-{int(day_str):02d}"
+                last_month = month_num
             continue
 
         if current_date is None:
@@ -1268,6 +1443,57 @@ def parse_european_txt(season, competition, filename):
                 'neutral':         False,
                 'shootout_winner': None,
             })
+            continue
+
+        # ---- Old country-cup format fallbacks (Coppa Italia 2020-23 etc.) ----
+        ocp = _RE_OLDCUP_PEN.match(line)
+        if ocp:
+            team1 = normalize_team(ocp.group(1))
+            team2 = normalize_team(ocp.group(6))
+            pen_h, pen_a   = int(ocp.group(2)), int(ocp.group(3))
+            match_h, match_a = int(ocp.group(4)), int(ocp.group(5))
+            winner = team1 if pen_h > pen_a else team2
+            rows.append({
+                'date':            current_date,
+                'home_team':       team1,
+                'away_team':       team2,
+                'home_score':      match_h,
+                'away_score':      match_a,
+                'competition':     competition,
+                'comp_season':     season,
+                'neutral':         False,
+                'shootout_winner': winner,
+            })
+            continue
+
+        oca = _RE_OLDCUP_AET.match(line)
+        if oca:
+            rows.append({
+                'date':            current_date,
+                'home_team':       normalize_team(oca.group(1)),
+                'away_team':       normalize_team(oca.group(4)),
+                'home_score':      int(oca.group(2)),
+                'away_score':      int(oca.group(3)),
+                'competition':     competition,
+                'comp_season':     season,
+                'neutral':         False,
+                'shootout_winner': None,
+            })
+            continue
+
+        omm = _RE_OLDCUP_MATCH.match(line)
+        if omm:
+            rows.append({
+                'date':            current_date,
+                'home_team':       normalize_team(omm.group(1)),
+                'away_team':       normalize_team(omm.group(4)),
+                'home_score':      int(omm.group(2)),
+                'away_score':      int(omm.group(3)),
+                'competition':     competition,
+                'comp_season':     season,
+                'neutral':         False,
+                'shootout_winner': None,
+            })
 
     return rows
 
@@ -1298,6 +1524,24 @@ for season in ALL_SEASONS:
     # Wikipedia-scraped CSV for the gap. See scrape_el_uefacup.py.
     if 2004 <= season_year <= 2019:
         all_rows.extend(load_uefacup_historical(season))
+    # Domestic cups (Phase 3a): engsoccerdata covers FA Cup pre-2018,
+    # openfootball country repos cover the modern era for FA Cup, DFB-Pokal,
+    # Copa del Rey, and Coppa Italia.
+    if season_year <= 2017:
+        all_rows.extend(load_facup_engsoccerdata(season))
+    for cup_name, country_repo, txt_file, first_of in DOMESTIC_CUPS:
+        if season_year >= first_of:
+            repo_base = f'{OPENFOOTBALL_COUNTRY_BASE}/{country_repo}/master'
+            all_rows.extend(parse_european_txt(season, cup_name, txt_file, repo_base=repo_base))
+    # Domestic cups (Phase 3b): Wikipedia historical backfill for the gap
+    # before openfootball coverage starts. cups_historical.csv only contains
+    # rows for the relevant pre-openfootball years per cup, so we can call
+    # for any season — empty-result calls are cheap (single dataframe filter).
+    for cup_name, _, _, first_of in DOMESTIC_CUPS:
+        if cup_name == 'FA Cup':
+            continue  # FA Cup history is fully covered by engsoccerdata
+        if season_year < first_of:
+            all_rows.extend(load_cup_historical(season, cup_name))
 
 df = pd.DataFrame(all_rows)
 df['date'] = pd.to_datetime(df['date'])
@@ -1560,6 +1804,7 @@ def season_is_complete(season_str):
 domestic_records = []
 cl_records       = []
 el_records       = []
+cup_records      = []   # Phase 3: domestic cup champion / runner-up
 
 # --- Domestic leader / champion ---
 # Complete seasons: label top 2 as Champion / Runner-Up.
@@ -1611,9 +1856,78 @@ for competition, records, col in [
         records.append({'season': comp_season, 'team': champion,  col: 'Champion'})
         records.append({'season': comp_season, 'team': runner_up, col: 'Runner-Up'})
 
+# --- Domestic cup champion / runner-up (Phase 3) ---
+# Handles 2-leg finals via aggregate: find the last match of comp_season,
+# look at all matches between those same two teams in the trailing 21 days,
+# sum the goals. Higher aggregate wins. Ties resolve via shootout_winner
+# on the second leg, then by away-goals rule (latest leg's away goals).
+DOMESTIC_CUP_NAMES = ['FA Cup', 'DFB-Pokal', 'Copa del Rey', 'Coppa Italia']
+for cup in DOMESTIC_CUP_NAMES:
+    cup_df = df[df['competition'] == cup].dropna(subset=['comp_season']).copy()
+    for comp_season, sdf in cup_df.groupby('comp_season'):
+        if not season_is_complete(comp_season):
+            continue
+        # Older Wikipedia cup pages occasionally include "see also" entries
+        # from the next season (Oct of year+1). Filter to dates within the
+        # cup season's natural range before identifying the final.
+        season_start = pd.Timestamp(int(comp_season[:4]), 7, 1)
+        season_end   = pd.Timestamp(int(comp_season[:4]) + 1, 7, 1)
+        sdf = sdf[(sdf['date'] >= season_start) & (sdf['date'] < season_end)]
+        if sdf.empty:
+            continue
+        last_date = sdf['date'].max()
+        last_match = sdf[sdf['date'] == last_date].iloc[-1]
+        team_a = last_match['home_team']
+        team_b = last_match['away_team']
+        # Pull all matches between these two teams in the final 21 days
+        from datetime import timedelta
+        window_start = last_date - pd.Timedelta(days=21)
+        ties = sdf[
+            (sdf['date'] >= window_start) &
+            (((sdf['home_team'] == team_a) & (sdf['away_team'] == team_b)) |
+             ((sdf['home_team'] == team_b) & (sdf['away_team'] == team_a)))
+        ]
+        # Sum goals from team_a perspective
+        a_goals = 0
+        b_goals = 0
+        a_away_goals = 0
+        b_away_goals = 0
+        for _, m in ties.iterrows():
+            if m['home_team'] == team_a:
+                a_goals += m['home_score']; b_goals += m['away_score']
+                b_away_goals += m['away_score']
+            else:
+                a_goals += m['away_score']; b_goals += m['home_score']
+                a_away_goals += m['away_score']
+        if a_goals > b_goals:
+            champion, runner_up = team_a, team_b
+        elif b_goals > a_goals:
+            champion, runner_up = team_b, team_a
+        else:
+            sw = last_match.get('shootout_winner')
+            if pd.notna(sw) and sw:
+                champion = sw
+                runner_up = team_b if sw == team_a else team_a
+            elif a_away_goals > b_away_goals:
+                champion, runner_up = team_a, team_b
+            elif b_away_goals > a_away_goals:
+                champion, runner_up = team_b, team_a
+            else:
+                continue  # truly indeterminate
+        cup_records.append({'season': comp_season, 'team': champion,  'cup_finish': 'Champion',  'cup': cup})
+        cup_records.append({'season': comp_season, 'team': runner_up, 'cup_finish': 'Runner-Up', 'cup': cup})
+
 domestic_finish_df = pd.DataFrame(domestic_records) if domestic_records else pd.DataFrame(columns=['season', 'team', 'domestic_finish'])
 cl_finish_df       = pd.DataFrame(cl_records)       if cl_records       else pd.DataFrame(columns=['season', 'team', 'cl_finish'])
 el_finish_df       = pd.DataFrame(el_records)       if el_records       else pd.DataFrame(columns=['season', 'team', 'el_finish'])
+cup_finish_df      = pd.DataFrame(cup_records)      if cup_records      else pd.DataFrame(columns=['season', 'team', 'cup_finish', 'cup'])
+# For merging into ratings: collapse to a single domestic_cup_finish column
+# (a team only ever wins one domestic cup per season since each team belongs
+# to one league/country, so the per-team-per-season collapse is safe).
+if not cup_finish_df.empty:
+    cup_simple_df = cup_finish_df.rename(columns={'cup_finish': 'domestic_cup_finish'})[['season', 'team', 'domestic_cup_finish']]
+else:
+    cup_simple_df = pd.DataFrame(columns=['season', 'team', 'domestic_cup_finish'])
 
 # Validation print — spot check before merging
 print(f"\n  {'Season':<10} {'Domestic Champions'}")
@@ -1630,6 +1944,18 @@ for season in all_comp_seasons:
     cl_name = cl_row['team'].values[0] if len(cl_row) else '(in progress)'
     el_name = el_row['team'].values[0] if len(el_row) else '(no data)'
     print(f"  {season:<10} {cl_name:<35} {el_name}")
+
+# Validation print: domestic cup champions per season
+if not cup_finish_df.empty:
+    print(f"\n  {'Season':<10} {'FA Cup':<26} {'DFB-Pokal':<26} {'Copa del Rey':<28} {'Coppa Italia'}")
+    print(f"  {'-'*112}")
+    cup_seasons = sorted(cup_finish_df['season'].unique())
+    for season in cup_seasons:
+        names = []
+        for cup in DOMESTIC_CUP_NAMES:
+            r = cup_finish_df[(cup_finish_df['season']==season) & (cup_finish_df['cup']==cup) & (cup_finish_df['cup_finish']=='Champion')]
+            names.append(r['team'].values[0] if len(r) else '—')
+        print(f"  {season:<10} {names[0]:<26} {names[1]:<26} {names[2]:<28} {names[3]}")
 
 # ============================================================
 # STEP 11 - MERGE INTO FINAL OUTPUT
@@ -1688,9 +2014,11 @@ final_df.rename(columns={'name': 'team'}, inplace=True)
 final_df = pd.merge(final_df, domestic_finish_df, on=['season', 'team'], how='left')
 final_df = pd.merge(final_df, cl_finish_df,       on=['season', 'team'], how='left')
 final_df = pd.merge(final_df, el_finish_df,        on=['season', 'team'], how='left')
-final_df['domestic_finish'] = final_df['domestic_finish'].fillna('')
-final_df['cl_finish']       = final_df['cl_finish'].fillna('')
-final_df['el_finish']       = final_df['el_finish'].fillna('')
+final_df = pd.merge(final_df, cup_simple_df,      on=['season', 'team'], how='left')
+final_df['domestic_finish']     = final_df['domestic_finish'].fillna('')
+final_df['cl_finish']           = final_df['cl_finish'].fillna('')
+final_df['el_finish']           = final_df['el_finish'].fillna('')
+final_df['domestic_cup_finish'] = final_df['domestic_cup_finish'].fillna('')
 
 # is_cl_final_day — snapshot falls on the CL final date for that comp season.
 # Uses the actual game date (not computed season) to handle the 2019-20 bubble.
@@ -1761,7 +2089,7 @@ final_df = final_df[[
     'ranking_id', 'date', 'season', 'team', 'league',
     'rating', 'rank',
     'games_played',
-    'domestic_finish', 'cl_finish', 'el_finish',
+    'domestic_finish', 'cl_finish', 'el_finish', 'domestic_cup_finish',
     'is_cl_final_day', 'is_domestic_final_day', 'is_end_of_season',
     'last_match_date', 'last_match', 'is_game_day',
     'most_recent',

@@ -182,6 +182,7 @@
   .finish-champion { background: #c8a84b; color: #1a6b8a; }
   .finish-runner   { background: #ddd; color: #444; }
   .finish-leader   { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+  .finish-treble   { background: linear-gradient(90deg, #c8a84b 0%, #d4af37 50%, #b8860b 100%); color: #1a1a1a; font-weight: 700; box-shadow: 0 0 4px rgba(212, 175, 55, 0.5); }
 
   .last-match-cell {
     font-size: 12px;
@@ -377,9 +378,25 @@ const LEAGUE_SHORT = {
   'Serie A': 'Serie A', 'Ligue 1': 'Ligue 1',
 };
 
-function finishBadge(dom, cl, el, league) {
+// Map a team's domestic league to the short label of its national cup.
+const CUP_SHORT = {
+  'EPL':        'FA Cup',
+  'La Liga':    'Copa del Rey',
+  'Bundesliga': 'DFB-Pokal',
+  'Serie A':    'Coppa Italia',
+};
+
+function finishBadge(dom, cl, el, league, cup) {
+  cup = cup || '';
   const bits = [];
   const lg = LEAGUE_SHORT[league] || 'League';
+  const cupLabel = CUP_SHORT[league] || 'Cup';
+  // Treble: domestic league + Champions League + domestic cup all won.
+  // Show a dedicated TREBLE badge in front of the individual ones.
+  const isTreble = dom === 'Champion' && cl === 'Champion' && cup === 'Champion';
+  if (isTreble) {
+    bits.push(`<span class="finish-badge finish-treble">TREBLE 👑</span>`);
+  }
   if (cl === 'Champion')   bits.push(`<span class="finish-badge finish-champion">CL 🏆</span>`);
   if (cl === 'Runner-Up')  bits.push(`<span class="finish-badge finish-runner">CL 🥈</span>`);
   if (el === 'Champion')   bits.push(`<span class="finish-badge finish-champion">EL 🏆</span>`);
@@ -388,6 +405,8 @@ function finishBadge(dom, cl, el, league) {
   if (dom === 'Runner-Up') bits.push(`<span class="finish-badge finish-runner">${lg} 🥈</span>`);
   if (dom === '1st')       bits.push(`<span class="finish-badge finish-leader">${lg} 1st</span>`);
   if (dom === '2nd')       bits.push(`<span class="finish-badge finish-leader">${lg} 2nd</span>`);
+  if (cup === 'Champion')  bits.push(`<span class="finish-badge finish-champion">${cupLabel} 🏆</span>`);
+  if (cup === 'Runner-Up') bits.push(`<span class="finish-badge finish-runner">${cupLabel} 🥈</span>`);
   return bits.join(' ');
 }
 
@@ -511,7 +530,7 @@ function renderStandings() {
         <span class="${resultClass(t.last_match)}">${abbrevComp(t.last_match) || '—'}</span>
       </td>
       <td class="col-hide-mobile" style="font-size:11px;color:#888;white-space:nowrap">${t.last_match_date || ''}</td>
-      <td class="col-hide-mobile" style="font-size:11px">${finishBadge(t.domestic_finish, t.cl_finish, t.el_finish, t.league)}</td>
+      <td class="col-hide-mobile" style="font-size:11px">${finishBadge(t.domestic_finish, t.cl_finish, t.el_finish, t.league, t.domestic_cup_finish)}</td>
     </tr>`;
   }).join('');
 
@@ -625,7 +644,7 @@ function renderTeamTable() {
     <td>${ratingBar(g.rating)}</td>
     <td class="rank-cell">${g.rank}</td>
     <td class="rank-cell col-hide-mobile">${g.lg_rank != null ? g.lg_rank : '—'}</td>
-    <td class="col-hide-mobile" style="font-size:11px">${finishBadge(g.domestic_finish, g.cl_finish, g.el_finish, data.league)}</td>
+    <td class="col-hide-mobile" style="font-size:11px">${finishBadge(g.domestic_finish, g.cl_finish, g.el_finish, data.league, g.domestic_cup_finish)}</td>
   </tr>`).join('');
 
   document.getElementById('team-table-wrap').innerHTML = `
@@ -730,15 +749,25 @@ function renderLeagueHistory(league) {
 
   function honorBadges(t) {
     const bits = [];
+    const lg = LEAGUE_SHORT[t.league] || 'League';
+    const cupLabel = CUP_SHORT[t.league] || 'Cup';
+    // Treble call-out: only relevant on the league pages (the team won league + CL + cup).
+    const isTreble = t.domestic_finish === 'Champion' && t.cl_finish === 'Champion' && t.domestic_cup_finish === 'Champion';
+    if (isTreble && !isCup) {
+      bits.push(`<span class="finish-badge finish-treble">TREBLE 👑</span>`);
+    }
     if (isCup) {
-      const lg = LEAGUE_SHORT[t.league] || 'League';
       if (t.domestic_finish === 'Champion')  bits.push(`<span class="finish-badge finish-champion">${lg} 🏆</span>`);
       if (t.domestic_finish === 'Runner-Up') bits.push(`<span class="finish-badge finish-runner">${lg} 🥈</span>`);
+      if (t.domestic_cup_finish === 'Champion')  bits.push(`<span class="finish-badge finish-champion">${cupLabel} 🏆</span>`);
+      if (t.domestic_cup_finish === 'Runner-Up') bits.push(`<span class="finish-badge finish-runner">${cupLabel} 🥈</span>`);
     } else {
       if (t.cl_finish === 'Champion')  bits.push(`<span class="finish-badge finish-champion">CL 🏆</span>`);
       if (t.cl_finish === 'Runner-Up') bits.push(`<span class="finish-badge finish-runner">CL 🥈</span>`);
       if (t.el_finish === 'Champion')  bits.push(`<span class="finish-badge finish-champion">EL 🏆</span>`);
       if (t.el_finish === 'Runner-Up') bits.push(`<span class="finish-badge finish-runner">EL 🥈</span>`);
+      if (t.domestic_cup_finish === 'Champion')  bits.push(`<span class="finish-badge finish-champion">${cupLabel} 🏆</span>`);
+      if (t.domestic_cup_finish === 'Runner-Up') bits.push(`<span class="finish-badge finish-runner">${cupLabel} 🥈</span>`);
     }
     return bits.join(' ');
   }
@@ -827,7 +856,7 @@ function renderGoat() {
     <td>${leagueBadge(t.league)}</td>
     <td>${ratingBar(t.rating)}</td>
     <td style="font-variant-numeric:tabular-nums;white-space:nowrap" class="col-hide-mobile">${fmtRecord(t.record)}</td>
-    <td class="col-hide-mobile" style="font-size:11px">${finishBadge(t.domestic_finish, t.cl_finish, t.el_finish, t.league)}</td>
+    <td class="col-hide-mobile" style="font-size:11px">${finishBadge(t.domestic_finish, t.cl_finish, t.el_finish, t.league, t.domestic_cup_finish)}</td>
   </tr>`).join('');
 
   document.getElementById('goat-table-wrap').innerHTML = `
