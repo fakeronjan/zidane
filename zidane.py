@@ -1663,6 +1663,35 @@ lastmatch_df['date'] = pd.to_datetime(lastmatch_df['date']).dt.date
 
 print("Starting ZIDANE rating calculations...")
 
+# ── Big-5 game filter ──────────────────────────────────────────────────────────
+# A team is "Big 5" for a given season if they appeared in any of the 5 top
+# domestic leagues that season (EPL, La Liga, Bundesliga, Serie A, Ligue 1).
+# We drop the team's promotion/relegation history — what matters is whether
+# the team was a Big-5 league member during the season the game took place.
+#
+# Massey then runs ONLY on games where BOTH teams are Big 5 in the game's
+# season. CL/EL group games between Big-5 sides survive; qualifying-round
+# matches against minnows (Maltese, Faroese, etc.) are dropped. Domestic
+# cup matches against lower-division teams are dropped. Big-5-vs-Big-5
+# cup matches survive.
+#
+# Net effect: cleaner rating signal, no need for post-hoc re-centering, and
+# the network is naturally 0-centered around the Big-5 mean by construction.
+print("Building per-season Big-5 team set...")
+BIG5_LEAGUES = set(FDCO_LEAGUE_CODES.keys())
+_big5_by_season = {}
+_big5_dom_games = df[df['competition'].isin(BIG5_LEAGUES)]
+for season, sg in _big5_dom_games.groupby('season'):
+    teams = set(sg['home_team']).union(set(sg['away_team']))
+    _big5_by_season[season] = teams
+
+def _is_big5_game(row):
+    teams = _big5_by_season.get(row['season'], set())
+    return (row['home_team'] in teams) and (row['away_team'] in teams)
+
+df['_is_big5_game'] = df.apply(_is_big5_game, axis=1)
+print(f"  {df['_is_big5_game'].sum():,} of {len(df):,} games are Big-5 vs Big-5")
+
 max_date_id = int(df['grouped_date_id'].max())
 
 try:
@@ -1687,7 +1716,8 @@ for i in range(1, max_date_id + 1):
 
     working_df = df.loc[
         (df['grouped_date_id'] >= i - window_game_days + 1) &
-        (df['grouped_date_id'] <= i)
+        (df['grouped_date_id'] <= i) &
+        (df['_is_big5_game'])
     ].copy()
 
     if len(working_df) < 10:
@@ -2109,33 +2139,10 @@ final_df.drop_duplicates(keep='first', inplace=True)
 # and non-top-5 clubs appearing only via European competition
 final_df = final_df[final_df['games_played'] >= min_games]
 
-# Re-center each snapshot's ratings around the Big-5 mean.
-# Massey ratings are 0-centered across the FULL game-day network, but the
-# network includes ~200 non-Big-5 teams from CL/EL qualifying rounds that
-# usually lose to Big-5 opponents and absorb the negative side of the
-# distribution. After min_games drops most of them from display, the
-# remaining Big-5 + a few European-ladder teams sit on a heavily +shifted
-# scale (mean ~+1.5, almost no negatives).
-#
-# Re-anchoring to the Big-5 mean makes the displayed ratings interpretable:
-# 0 ≈ average Big-5 team in the rolling window. Non-Big-5 teams that
-# survived min_games (deep CL/EL runs) get shifted with the same offset
-# so their relative position is preserved. Ratings are NOT modified for
-# anyone in zidane_ratings.csv.gz — only the final output / display.
-BIG5_LEAGUES = set(FDCO_LEAGUE_CODES.keys())
-big5_shift = (
-    final_df[final_df['league'].isin(BIG5_LEAGUES)]
-    .groupby('ranking_id')['rating']
-    .mean()
-    .rename('big5_mean')
-)
-final_df = final_df.merge(big5_shift, left_on='ranking_id', right_index=True, how='left')
-final_df['rating'] = final_df['rating'] - final_df['big5_mean'].fillna(0)
-final_df.drop(columns=['big5_mean'], inplace=True)
-
 # Renumber ranks contiguously within each snapshot after filtering.
-# (Order is unchanged by the constant per-snapshot shift, but rebuild
-# anyway so ranks remain integer-clean.)
+# (Massey input is now restricted to Big-5-vs-Big-5 games, so the network
+# is naturally 0-centered around the Big-5 mean by construction — no
+# post-hoc re-centering needed.)
 final_df['rank'] = (
     final_df.groupby('ranking_id')['rating']
     .rank(ascending=False, method='min')
