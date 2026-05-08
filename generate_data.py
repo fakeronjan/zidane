@@ -207,16 +207,20 @@ with open('docs/data/current_standings.json', 'w') as f:
     json.dump(standings_data, f, separators=(',', ':'))
 
 # ── 2. GOAT table ─────────────────────────────────────────────────────────────
-# Exclude all pre-2004-05 seasons. Until our Phase 2 UEFA Cup backfill kicks
-# in (2004-05), the only cross-league signal is the 16-team Champions League,
-# which is too sparse to anchor intra-league clusters reliably. Massey then
-# amplifies dominant in-league results (early-90s Serie A and mid-90s La Liga
-# both inflate). The result was top-50 entries like 1995-96 SS Lazio and
-# 1995-96 CD Tenerife with no honors but inflated ratings.
-GOAT_FIRST_SEASON_YEAR = 2004
+# Eligibility: must win the domestic league OR the Champions League this
+# season. Domestic cup and Europa League do NOT qualify on their own. This
+# filters out cluster-inflation entries — pre-2004 in particular still has
+# years where one Big-5 league had a coordinated strong CL run and several
+# of its mid-table teams' ratings inflated together. A "championship gate"
+# keeps only the seasons that produced a real trophy lift.
+#
+# Warm-up exclusion (1992-93 → 1994-95) still applies — the rolling Massey
+# window isn't fully populated in those seasons.
+GOAT_WARMUP_SEASONS = {'1992-93', '1993-94', '1994-95'}
 print("Writing goat_teams.json...")
 eos = df[df['is_end_of_season'] == 1].copy()
-eos = eos[eos['season'].str[:4].astype(int) >= GOAT_FIRST_SEASON_YEAR]
+eos = eos[~eos['season'].isin(GOAT_WARMUP_SEASONS)]
+eos = eos[(eos['domestic_finish'] == 'Champion') | (eos['cl_finish'] == 'Champion')]
 eos = eos.sort_values('rating', ascending=False).head(50).reset_index(drop=True)
 
 # End-of-season domestic record per (team, season) — used by GOAT and the
