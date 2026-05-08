@@ -2109,7 +2109,33 @@ final_df.drop_duplicates(keep='first', inplace=True)
 # and non-top-5 clubs appearing only via European competition
 final_df = final_df[final_df['games_played'] >= min_games]
 
-# Renumber ranks contiguously within each snapshot after filtering
+# Re-center each snapshot's ratings around the Big-5 mean.
+# Massey ratings are 0-centered across the FULL game-day network, but the
+# network includes ~200 non-Big-5 teams from CL/EL qualifying rounds that
+# usually lose to Big-5 opponents and absorb the negative side of the
+# distribution. After min_games drops most of them from display, the
+# remaining Big-5 + a few European-ladder teams sit on a heavily +shifted
+# scale (mean ~+1.5, almost no negatives).
+#
+# Re-anchoring to the Big-5 mean makes the displayed ratings interpretable:
+# 0 ≈ average Big-5 team in the rolling window. Non-Big-5 teams that
+# survived min_games (deep CL/EL runs) get shifted with the same offset
+# so their relative position is preserved. Ratings are NOT modified for
+# anyone in zidane_ratings.csv.gz — only the final output / display.
+BIG5_LEAGUES = set(FDCO_LEAGUE_CODES.keys())
+big5_shift = (
+    final_df[final_df['league'].isin(BIG5_LEAGUES)]
+    .groupby('ranking_id')['rating']
+    .mean()
+    .rename('big5_mean')
+)
+final_df = final_df.merge(big5_shift, left_on='ranking_id', right_index=True, how='left')
+final_df['rating'] = final_df['rating'] - final_df['big5_mean'].fillna(0)
+final_df.drop(columns=['big5_mean'], inplace=True)
+
+# Renumber ranks contiguously within each snapshot after filtering.
+# (Order is unchanged by the constant per-snapshot shift, but rebuild
+# anyway so ranks remain integer-clean.)
 final_df['rank'] = (
     final_df.groupby('ranking_id')['rating']
     .rank(ascending=False, method='min')
