@@ -303,37 +303,14 @@
 
 <!-- ── LEAGUE HISTORY ────────────────────────────────────────────────────── -->
 <div id="league-history" class="tab">
-  <div class="controls">
-    <select id="history-league-filter">
-      <option value="">— Select a competition —</option>
-      <optgroup label="Domestic Leagues">
-        <option value="EPL">🏴󠁧󠁢󠁥󠁮󠁧󠁿 EPL</option>
-        <option value="La Liga">🇪🇸 La Liga</option>
-        <option value="Bundesliga">🇩🇪 Bundesliga</option>
-        <option value="Serie A">🇮🇹 Serie A</option>
-        <option value="Ligue 1">🇫🇷 Ligue 1</option>
-      </optgroup>
-      <optgroup label="European Cups">
-        <option value="Champions League">🏆 Champions League</option>
-        <option value="Europa League">🏆 Europa League</option>
-      </optgroup>
-    </select>
-  </div>
-  <div id="history-table-wrap"><p class="loading">Select a league above.</p></div>
+  <div class="league-pills" id="history-domestic-pills" style="margin-bottom:6px"></div>
+  <div class="league-pills" id="history-uefa-pills"></div>
+  <div id="history-table-wrap"><p class="loading">Select a competition above.</p></div>
 </div>
 
 <!-- ── GOAT TABLE ───────────────────────────────────────────────────────── -->
 <div id="goat" class="tab">
-  <div class="controls">
-    <select id="goat-league-filter">
-      <option value="all">All Leagues</option>
-      <option value="EPL">EPL</option>
-      <option value="La Liga">La Liga</option>
-      <option value="Bundesliga">Bundesliga</option>
-      <option value="Serie A">Serie A</option>
-      <option value="Ligue 1">Ligue 1</option>
-    </select>
-  </div>
+  <div class="league-pills" id="goat-league-pills"></div>
   <p class="data-note">Top 50 single-season ratings · Eligibility requires winning the domestic league or the Champions League. 1992–93 through 1994–95 excluded as rolling-window warm-up.</p>
   <div id="goat-table-wrap"><p class="loading">Loading GOAT table...</p></div>
 </div>
@@ -346,11 +323,12 @@ let goatData          = null;
 let teamsIndex        = null;
 let teamCache         = {};
 
-// Pill state (replaces league-filter / league-select dropdowns)
+// Pill state (replaces league-filter / league-select / goat-league-filter / history-league-filter dropdowns)
 let standingsLeague = 'all';
 let tsLeague        = '';
+let goatLeague      = 'all';
+let historyComp     = '';   // current Champions/League-History selection
 
-// League options used by the pills (Standings allows "All", Team Summary doesn't)
 const LEAGUE_OPTIONS = [
   { value: 'EPL',         label: '🏴󠁧󠁢󠁥󠁮󠁧󠁿 EPL'        },
   { value: 'La Liga',     label: '🇪🇸 La Liga'    },
@@ -358,26 +336,41 @@ const LEAGUE_OPTIONS = [
   { value: 'Serie A',     label: '🇮🇹 Serie A'    },
   { value: 'Ligue 1',     label: '🇫🇷 Ligue 1'    },
 ];
+const UEFA_OPTIONS = [
+  { value: 'Champions League', label: '🏆 Champions League' },
+  { value: 'Europa League',    label: '🏆 Europa League'    },
+];
 
-// Reusable pill builder. `current` is the active value; `onSelect(value)` fires on click.
-function buildLeaguePills(containerId, includeAll, current, onSelect) {
+// Reusable pill builder. Builds buttons from `opts` array of {value, label}.
+// `current` highlights one as active; `onSelect(value)` fires on click. If
+// `clearSiblings` is set to a list of other container IDs, clicking will
+// also clear active state in those siblings (used for Champions tab where
+// domestic + UEFA pill rows share a single "current selection").
+function buildLeaguePillsFromOpts(containerId, opts, current, onSelect, clearSiblings) {
   const wrap = document.getElementById(containerId);
   wrap.innerHTML = '';
-  const opts = includeAll
-    ? [{ value: 'all', label: 'All Leagues' }, ...LEAGUE_OPTIONS]
-    : LEAGUE_OPTIONS;
   opts.forEach(o => {
     const b = document.createElement('button');
-    b.textContent = o.label;
+    b.innerHTML = o.label;
     b.dataset.value = o.value;
     if (o.value === current) b.classList.add('active');
     b.addEventListener('click', () => {
       wrap.querySelectorAll('button').forEach(x => x.classList.remove('active'));
+      (clearSiblings || []).forEach(sid => {
+        document.querySelectorAll(`#${sid} button`).forEach(x => x.classList.remove('active'));
+      });
       b.classList.add('active');
       onSelect(o.value);
     });
     wrap.appendChild(b);
   });
+}
+
+function buildLeaguePills(containerId, includeAll, current, onSelect) {
+  const opts = includeAll
+    ? [{ value: 'all', label: 'All Leagues' }, ...LEAGUE_OPTIONS]
+    : LEAGUE_OPTIONS;
+  buildLeaguePillsFromOpts(containerId, opts, current, onSelect);
 }
 
 // ── Utilities ───────────────────────────────────────────────────────────────
@@ -871,9 +864,6 @@ function renderLeagueHistory(league) {
     </table>`;
 }
 
-document.getElementById('history-league-filter').addEventListener('change', e => {
-  renderLeagueHistory(e.target.value);
-});
 
 // ── GOAT Table ────────────────────────────────────────────────────────────────
 async function loadGoat() {
@@ -888,9 +878,9 @@ async function loadGoat() {
 }
 
 function renderGoat() {
-  const league = document.getElementById('goat-league-filter').value;
+  if (!goatData) return;
   let teams = goatData;
-  if (league !== 'all') teams = teams.filter(t => t.league === league);
+  if (goatLeague !== 'all') teams = teams.filter(t => t.league === goatLeague);
 
   let displayRank = 1;
   const rows = teams.map(t => `<tr>
@@ -917,9 +907,19 @@ function renderGoat() {
     </table>`;
 }
 
-document.getElementById('goat-league-filter').addEventListener('change', renderGoat);
-
 // ── Init ─────────────────────────────────────────────────────────────────────
+buildLeaguePills('goat-league-pills', true, goatLeague, v => {
+  goatLeague = v;
+  renderGoat();
+});
+buildLeaguePillsFromOpts('history-domestic-pills', LEAGUE_OPTIONS, historyComp, v => {
+  historyComp = v;
+  renderLeagueHistory(v);
+}, ['history-uefa-pills']);
+buildLeaguePillsFromOpts('history-uefa-pills', UEFA_OPTIONS, historyComp, v => {
+  historyComp = v;
+  renderLeagueHistory(v);
+}, ['history-domestic-pills']);
 initStandings();
 loadTeamsIndex();
 loadChampions();
