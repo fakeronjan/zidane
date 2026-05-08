@@ -2010,15 +2010,10 @@ final_df['is_game_day'] = np.where(final_df['date'] == final_df['last_match_date
 
 final_df.rename(columns={'name': 'team'}, inplace=True)
 
-# Merge finish flags
-final_df = pd.merge(final_df, domestic_finish_df, on=['season', 'team'], how='left')
-final_df = pd.merge(final_df, cl_finish_df,       on=['season', 'team'], how='left')
-final_df = pd.merge(final_df, el_finish_df,        on=['season', 'team'], how='left')
-final_df = pd.merge(final_df, cup_simple_df,      on=['season', 'team'], how='left')
-final_df['domestic_finish']     = final_df['domestic_finish'].fillna('')
-final_df['cl_finish']           = final_df['cl_finish'].fillna('')
-final_df['el_finish']           = final_df['el_finish'].fillna('')
-final_df['domestic_cup_finish'] = final_df['domestic_cup_finish'].fillna('')
+# Finish-flag merges happen AFTER the season-patch step below — otherwise
+# the COVID-bubble Aug-2020 CL final row keeps its date_to_season "2020-21"
+# label at merge time and gets no flags, even though it later gets patched
+# back to "2019-20". See "season_patch" block below.
 
 # is_cl_final_day — snapshot falls on the CL final date for that comp season.
 # Uses the actual game date (not computed season) to handle the 2019-20 bubble.
@@ -2083,6 +2078,18 @@ for patch_date, correct_season in season_patch.items():
 
 eos_date_set = set(eos_map.index.values)
 final_df['is_end_of_season'] = np.where(final_df['date'].isin(eos_date_set), 1, 0)
+
+# Merge finish flags (post-season-patch — see comment above merge sites that
+# used to live before this block). Doing it here ensures the bubble-final
+# rows get their correct season's flags applied.
+final_df = pd.merge(final_df, domestic_finish_df, on=['season', 'team'], how='left')
+final_df = pd.merge(final_df, cl_finish_df,       on=['season', 'team'], how='left')
+final_df = pd.merge(final_df, el_finish_df,       on=['season', 'team'], how='left')
+final_df = pd.merge(final_df, cup_simple_df,      on=['season', 'team'], how='left')
+final_df['domestic_finish']     = final_df['domestic_finish'].fillna('')
+final_df['cl_finish']           = final_df['cl_finish'].fillna('')
+final_df['el_finish']           = final_df['el_finish'].fillna('')
+final_df['domestic_cup_finish'] = final_df['domestic_cup_finish'].fillna('')
 
 # Final column order
 final_df = final_df[[

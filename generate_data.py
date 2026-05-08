@@ -241,6 +241,7 @@ goat_data = [
         'domestic_finish': clean(r['domestic_finish']),
         'cl_finish':       clean(r['cl_finish']),
         'el_finish':       clean(r['el_finish']),
+        'domestic_cup_finish': clean(r.get('domestic_cup_finish', '')),
     }
     for i, (_, r) in enumerate(eos.iterrows())
 ]
