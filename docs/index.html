@@ -80,6 +80,25 @@
     cursor: pointer;
     min-width: 160px;
   }
+  .league-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .league-pills button {
+    background: #fff;
+    border: 1px solid #ddd;
+    color: #155a75;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 999px;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+  }
+  .league-pills button:hover { background: #fafafa; }
+  .league-pills button.active { background: #1a6b8a; color: #ff6eb4; border-color: #1a6b8a; }
   .count-label {
     font-size: 12px;
     color: #888;
@@ -233,6 +252,7 @@
     .controls { flex-direction: column; align-items: stretch; }
     select { min-width: unset; width: 100%; }
     .rating-bar-track { display: none; }    /* drop bar on small screens, keep number */
+    .league-pills button { font-size: 11px; padding: 5px 9px; }
     /* hide lower-priority columns on mobile */
     .col-hide-mobile { display: none; }
   }
@@ -255,17 +275,10 @@
 
 <!-- ── STANDINGS ────────────────────────────────────────────────────────── -->
 <div id="standings" class="tab active">
+  <div class="league-pills" id="standings-league-pills"></div>
   <div class="controls">
     <select id="season-filter"></select>
     <select id="date-filter" style="min-width:200px"></select>
-    <select id="league-filter">
-      <option value="all">All Leagues</option>
-      <option value="EPL">EPL</option>
-      <option value="La Liga">La Liga</option>
-      <option value="Bundesliga">Bundesliga</option>
-      <option value="Serie A">Serie A</option>
-      <option value="Ligue 1">Ligue 1</option>
-    </select>
     <span class="count-label" id="standings-count"></span>
   </div>
   <div id="standings-table-wrap"><p class="loading">Loading standings...</p></div>
@@ -273,15 +286,8 @@
 
 <!-- ── TEAM SUMMARY ─────────────────────────────────────────────────────── -->
 <div id="team-summary" class="tab">
+  <div class="league-pills" id="ts-league-pills"></div>
   <div class="controls">
-    <select id="league-select">
-      <option value="">— Select a league —</option>
-      <option value="EPL">🏴󠁧󠁢󠁥󠁮󠁧󠁿 EPL</option>
-      <option value="La Liga">🇪🇸 La Liga</option>
-      <option value="Bundesliga">🇩🇪 Bundesliga</option>
-      <option value="Serie A">🇮🇹 Serie A</option>
-      <option value="Ligue 1">🇫🇷 Ligue 1</option>
-    </select>
     <select id="team-select" disabled><option value="">— Select a team —</option></select>
     <select id="season-select"><option value="all">All Seasons</option></select>
     <select id="date-type-select">
@@ -339,6 +345,40 @@ let currentSnapshot   = null;
 let goatData          = null;
 let teamsIndex        = null;
 let teamCache         = {};
+
+// Pill state (replaces league-filter / league-select dropdowns)
+let standingsLeague = 'all';
+let tsLeague        = '';
+
+// League options used by the pills (Standings allows "All", Team Summary doesn't)
+const LEAGUE_OPTIONS = [
+  { value: 'EPL',         label: '🏴󠁧󠁢󠁥󠁮󠁧󠁿 EPL'        },
+  { value: 'La Liga',     label: '🇪🇸 La Liga'    },
+  { value: 'Bundesliga',  label: '🇩🇪 Bundesliga' },
+  { value: 'Serie A',     label: '🇮🇹 Serie A'    },
+  { value: 'Ligue 1',     label: '🇫🇷 Ligue 1'    },
+];
+
+// Reusable pill builder. `current` is the active value; `onSelect(value)` fires on click.
+function buildLeaguePills(containerId, includeAll, current, onSelect) {
+  const wrap = document.getElementById(containerId);
+  wrap.innerHTML = '';
+  const opts = includeAll
+    ? [{ value: 'all', label: 'All Leagues' }, ...LEAGUE_OPTIONS]
+    : LEAGUE_OPTIONS;
+  opts.forEach(o => {
+    const b = document.createElement('button');
+    b.textContent = o.label;
+    b.dataset.value = o.value;
+    if (o.value === current) b.classList.add('active');
+    b.addEventListener('click', () => {
+      wrap.querySelectorAll('button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      onSelect(o.value);
+    });
+    wrap.appendChild(b);
+  });
+}
 
 // ── Utilities ───────────────────────────────────────────────────────────────
 function fmtRecord(rec) {
@@ -504,7 +544,7 @@ function selectSnapshot(date) {
 
 function renderStandings() {
   if (!currentSnapshot) return;
-  const league = document.getElementById('league-filter').value;
+  const league = standingsLeague;
 
   // Compute LG rank: position within each league (teams already sorted by OVR rank)
   const lgRankMap = {};
@@ -552,7 +592,10 @@ function renderStandings() {
 
 document.getElementById('season-filter').addEventListener('change', e => loadSeason(e.target.value));
 document.getElementById('date-filter').addEventListener('change', e => selectSnapshot(e.target.value));
-document.getElementById('league-filter').addEventListener('change', renderStandings);
+buildLeaguePills('standings-league-pills', true, standingsLeague, v => {
+  standingsLeague = v;
+  renderStandings();
+});
 
 // ── Team Summary ─────────────────────────────────────────────────────────────
 async function loadTeamsIndex() {
@@ -578,8 +621,9 @@ function populateTeams(league) {
   sel.disabled = false;
 }
 
-document.getElementById('league-select').addEventListener('change', e => {
-  populateTeams(e.target.value);
+buildLeaguePills('ts-league-pills', false, tsLeague, v => {
+  tsLeague = v;
+  populateTeams(v);
   document.getElementById('chart-wrap').style.display = 'none';
   document.getElementById('team-table-wrap').innerHTML =
     '<p class="loading">Select a team above.</p>';
