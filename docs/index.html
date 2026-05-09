@@ -209,6 +209,7 @@
   .finish-runner   { background: #ddd; color: #444; }
   .finish-leader   { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
   .finish-treble   { background: linear-gradient(90deg, #c8a84b 0%, #d4af37 50%, #b8860b 100%); color: #1a1a1a; font-weight: 700; box-shadow: 0 0 4px rgba(212, 175, 55, 0.5); }
+  .conf-pill       { background: #f4f4f4; color: #555; border: 1px solid #e8e8e8; }
 
   .last-match-cell {
     font-size: 12px;
@@ -398,22 +399,6 @@ function abbrevComp(str) {
     .replace(/\bEuropa League\b/g, 'EL');
 }
 
-function leagueBadge(league) {
-  const cls = {
-    'EPL': 'badge-EPL', 'La Liga': 'badge-LaLiga',
-    'Bundesliga': 'badge-Bundesliga', 'Serie A': 'badge-SerieA',
-    'Ligue 1': 'badge-Ligue1'
-  }[league] || 'badge-Other';
-  const short = {
-    'EPL':        '🏴󠁧󠁢󠁥󠁮󠁧󠁿 EPL',
-    'La Liga':    '🇪🇸 La Liga',
-    'Bundesliga': '🇩🇪 BL',
-    'Serie A':    '🇮🇹 Serie A',
-    'Ligue 1':    '🇫🇷 Ligue 1',
-  }[league] || league;
-  return `<span class="league-badge ${cls}">${short}</span>`;
-}
-
 const LEAGUE_SHORT = {
   'EPL': 'EPL', 'La Liga': 'La Liga', 'Bundesliga': 'BL',
   'Serie A': 'Serie A', 'Ligue 1': 'Ligue 1',
@@ -427,13 +412,37 @@ const CUP_SHORT = {
   'Serie A':    'Coppa Italia',
 };
 
+const _LEAGUE_BADGE_CLS = {
+  'EPL': 'badge-EPL', 'La Liga': 'badge-LaLiga',
+  'Bundesliga': 'badge-Bundesliga', 'Serie A': 'badge-SerieA',
+  'Ligue 1': 'badge-Ligue1'
+};
+const _LEAGUE_BADGE_LABEL = {
+  'EPL':        '🏴󠁧󠁢󠁥󠁮󠁧󠁿 EPL',
+  'La Liga':    '🇪🇸 La Liga',
+  'Bundesliga': '🇩🇪 BL',
+  'Serie A':    '🇮🇹 Serie A',
+  'Ligue 1':    '🇫🇷 Ligue 1',
+};
+
+function leagueBadge(league, dom) {
+  if (!league) return '';
+  const lg = LEAGUE_SHORT[league] || league;
+  if (dom === 'Champion')  return `<span class="finish-badge finish-champion">${lg} 🏆</span>`;
+  if (dom === 'Runner-Up') return `<span class="finish-badge finish-runner">${lg} 🥈</span>`;
+  if (dom === '1st')       return `<span class="finish-badge finish-leader">${lg} 1st</span>`;
+  if (dom === '2nd')       return `<span class="finish-badge finish-leader">${lg} 2nd</span>`;
+  // Default: colored per-league pill with country flag emoji
+  const cls = _LEAGUE_BADGE_CLS[league] || 'badge-Other';
+  const label = _LEAGUE_BADGE_LABEL[league] || league;
+  return `<span class="league-badge ${cls}">${label}</span>`;
+}
+
 function finishBadge(dom, cl, el, league, cup) {
   cup = cup || '';
   const bits = [];
-  const lg = LEAGUE_SHORT[league] || 'League';
   const cupLabel = CUP_SHORT[league] || 'Cup';
   // Treble: domestic league + Champions League + domestic cup all won.
-  // Show a dedicated TREBLE badge in front of the individual ones.
   const isTreble = dom === 'Champion' && cl === 'Champion' && cup === 'Champion';
   if (isTreble) {
     bits.push(`<span class="finish-badge finish-treble">TREBLE 👑</span>`);
@@ -442,10 +451,6 @@ function finishBadge(dom, cl, el, league, cup) {
   if (cl === 'Runner-Up')  bits.push(`<span class="finish-badge finish-runner">CL 🥈</span>`);
   if (el === 'Champion')   bits.push(`<span class="finish-badge finish-champion">EL 🏆</span>`);
   if (el === 'Runner-Up')  bits.push(`<span class="finish-badge finish-runner">EL 🥈</span>`);
-  if (dom === 'Champion')  bits.push(`<span class="finish-badge finish-champion">${lg} 🏆</span>`);
-  if (dom === 'Runner-Up') bits.push(`<span class="finish-badge finish-runner">${lg} 🥈</span>`);
-  if (dom === '1st')       bits.push(`<span class="finish-badge finish-leader">${lg} 1st</span>`);
-  if (dom === '2nd')       bits.push(`<span class="finish-badge finish-leader">${lg} 2nd</span>`);
   if (cup === 'Champion')  bits.push(`<span class="finish-badge finish-champion">${cupLabel} 🏆</span>`);
   if (cup === 'Runner-Up') bits.push(`<span class="finish-badge finish-runner">${cupLabel} 🥈</span>`);
   return bits.join(' ');
@@ -564,7 +569,7 @@ function renderStandings() {
       <td class="rank-cell">${t.rank}</td>
       <td class="rank-cell col-hide-mobile">${lgRank}</td>
       <td class="team-cell">${t.team}</td>
-      <td>${leagueBadge(t.league)}</td>
+      <td>${leagueBadge(t.league, t.domestic_finish)}</td>
       <td style="font-variant-numeric:tabular-nums;white-space:nowrap">${fmtRecord(t.record)}</td>
       <td>${ratingBar(t.rating)}</td>
       <td class="last-match-cell">
@@ -689,6 +694,7 @@ function renderTeamTable() {
     <td class="rank-cell">${g.rank}</td>
     <td class="rank-cell col-hide-mobile">${g.lg_rank != null ? g.lg_rank : '—'}</td>
     <td>${ratingBar(g.rating)}</td>
+    <td class="col-hide-mobile" style="font-size:11px">${leagueBadge(data.league, g.domestic_finish)}</td>
     <td class="col-hide-mobile" style="font-size:11px">${finishBadge(g.domestic_finish, g.cl_finish, g.el_finish, data.league, g.domestic_cup_finish)}</td>
   </tr>`).join('');
 
@@ -699,6 +705,7 @@ function renderTeamTable() {
         <th>LEAGUE W-D-L (Pts)</th>
         <th>OVR #</th><th class="col-hide-mobile">LG #</th>
         <th>Rating</th>
+        <th class="col-hide-mobile">League</th>
         <th class="col-hide-mobile">Honors</th>
       </tr></thead>
       <tbody>${tableRows}</tbody>
@@ -845,7 +852,7 @@ function renderLeagueHistory(league) {
   }).join('');
 
   const dividerHeader = isCup
-    ? `<th class="divider-col" style="text-align:center;font-size:10px;width:52px">Final</th>`
+    ? `<th class="divider-col" style="text-align:center;font-size:10px;width:52px">Score</th>`
     : `<th class="divider-col"></th>`;
 
   const note = league === 'Europa League'
@@ -861,13 +868,13 @@ function renderLeagueHistory(league) {
         <th class="col-champ col-hide-mobile">OVR #</th>
         <th class="col-champ col-hide-mobile">LG #</th>
         <th class="col-champ">Rating</th>
-        <th class="col-champ col-hide-mobile">Record</th>
+        <th class="col-champ col-hide-mobile">LG W-D-L (Pts)</th>
         ${dividerHeader}
         <th class="col-ru">Runner-Up</th>
         <th class="col-ru col-hide-mobile">OVR #</th>
         <th class="col-ru col-hide-mobile">LG #</th>
         <th class="col-ru">Rating</th>
-        <th class="col-ru col-hide-mobile">Record</th>
+        <th class="col-ru col-hide-mobile">LG W-D-L (Pts)</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
@@ -896,7 +903,7 @@ function renderGoat() {
     <td class="rank-cell">${displayRank++}</td>
     <td style="text-align:center;white-space:nowrap">${t.season}</td>
     <td class="team-cell">${t.team}</td>
-    <td>${leagueBadge(t.league)}</td>
+    <td>${leagueBadge(t.league, t.domestic_finish)}</td>
     <td>${ratingBar(t.rating)}</td>
     <td style="font-variant-numeric:tabular-nums;white-space:nowrap" class="col-hide-mobile">${fmtRecord(t.record)}</td>
     <td class="col-hide-mobile" style="font-size:11px">${finishBadge(t.domestic_finish, t.cl_finish, t.el_finish, t.league, t.domestic_cup_finish)}</td>
@@ -909,7 +916,7 @@ function renderGoat() {
         <th style="text-align:center">Season</th>
         <th>Team</th><th>League</th>
         <th>Rating</th>
-        <th class="col-hide-mobile">LG Record</th>
+        <th class="col-hide-mobile">LG W-D-L (Pts)</th>
         <th class="col-hide-mobile">Honors</th>
       </tr></thead>
       <tbody>${rows}</tbody>
