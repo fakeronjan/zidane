@@ -905,9 +905,8 @@ function renderGoat() {
   let teams = goatData;
   if (goatLeague !== 'all') teams = teams.filter(t => t.league === goatLeague);
 
-  let displayRank = 1;
   const rows = teams.map(t => `<tr>
-    <td class="rank-cell">${displayRank++}</td>
+    <td class="rank-cell">${t.rank}</td>
     <td style="text-align:center;white-space:nowrap">${t.season}</td>
     <td class="team-cell">${t.team}</td>
     <td>${leagueBadge(t.league, t.domestic_finish)}</td>
