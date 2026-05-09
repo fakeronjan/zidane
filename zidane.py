@@ -1643,10 +1643,10 @@ df['away_last_match'] = (
     ' (' + df['competition'] + ')'
 )
 
-lastmatch_home = df[['date', 'home_team', 'home_last_match']].copy()
-lastmatch_home.columns = ['date', 'name', 'last_match']
-lastmatch_away = df[['date', 'away_team', 'away_last_match']].copy()
-lastmatch_away.columns = ['date', 'name', 'last_match']
+lastmatch_home = df[['date', 'season', 'home_team', 'home_last_match']].copy()
+lastmatch_home.columns = ['date', 'season', 'name', 'last_match']
+lastmatch_away = df[['date', 'season', 'away_team', 'away_last_match']].copy()
+lastmatch_away.columns = ['date', 'season', 'name', 'last_match']
 lastmatch_df = pd.concat([lastmatch_home, lastmatch_away]).reset_index(drop=True)
 lastmatch_df['date'] = pd.to_datetime(lastmatch_df['date']).dt.date
 
@@ -2017,7 +2017,10 @@ league_lookup = (
 final_df = pd.merge(final_df, league_lookup, on='name', how='left')
 final_df['league'] = final_df['league'].fillna('European/Other')
 
-# Last match string via merge_asof (carries forward most recent result)
+# Last match string via merge_asof. Forward-fills the most recent result
+# WITHIN the same team's same season — at the start of a new season, teams
+# that haven't played yet correctly show empty rather than their previous-
+# season finals/cup match. Achieved by including season in the merge `by`.
 lastmatch_df_sorted = lastmatch_df.copy()
 lastmatch_df_sorted['date'] = pd.to_datetime(lastmatch_df_sorted['date'])
 lastmatch_df_sorted = lastmatch_df_sorted.sort_values('date')
@@ -2028,7 +2031,7 @@ final_df = pd.merge_asof(
     lastmatch_df_sorted.rename(columns={'date': 'match_date'}),
     left_on='date',
     right_on='match_date',
-    by='name',
+    by=['name', 'season'],
     direction='backward'
 )
 final_df['last_match']      = final_df['last_match'].fillna('No match yet')
