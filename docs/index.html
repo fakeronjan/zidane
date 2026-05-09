@@ -207,7 +207,6 @@
   }
   .finish-champion { background: #c8a84b; color: #1a6b8a; }
   .finish-runner   { background: #ddd; color: #444; }
-  .finish-leader   { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
   .finish-treble   { background: linear-gradient(90deg, #c8a84b 0%, #d4af37 50%, #b8860b 100%); color: #1a1a1a; font-weight: 700; box-shadow: 0 0 4px rgba(212, 175, 55, 0.5); }
   .conf-pill       { background: #f4f4f4; color: #555; border: 1px solid #e8e8e8; }
 
@@ -431,8 +430,10 @@ function leagueBadge(league, dom) {
   const lg = LEAGUE_SHORT[league] || league;
   if (dom === 'Champion')  return `<span class="finish-badge finish-champion">${lg} 🏆</span>`;
   if (dom === 'Runner-Up') return `<span class="finish-badge finish-runner">${lg} 🥈</span>`;
-  if (dom === '1st')       return `<span class="finish-badge finish-leader">${lg} 1st</span>`;
-  if (dom === '2nd')       return `<span class="finish-badge finish-leader">${lg} 2nd</span>`;
+  // In-progress leaders (dom === '1st' or '2nd') fall through to the default
+  // colored pill — they intentionally get NO special highlight to stay
+  // consistent with other leagues, where only confirmed end-of-season finishes
+  // earn a trophy/medal badge.
   // Default: colored per-league pill with country flag emoji
   const cls = _LEAGUE_BADGE_CLS[league] || 'badge-Other';
   const label = _LEAGUE_BADGE_LABEL[league] || league;
