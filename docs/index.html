@@ -678,9 +678,9 @@ function renderTeamTable() {
       <span class="${resultClass(g.last_match)}">${abbrevComp(g.last_match) || '—'}</span>
     </td>
     <td style="font-variant-numeric:tabular-nums;white-space:nowrap">${fmtRecord(g.record)}</td>
-    <td>${ratingBar(g.rating)}</td>
     <td class="rank-cell">${g.rank}</td>
     <td class="rank-cell col-hide-mobile">${g.lg_rank != null ? g.lg_rank : '—'}</td>
+    <td>${ratingBar(g.rating)}</td>
     <td class="col-hide-mobile" style="font-size:11px">${finishBadge(g.domestic_finish, g.cl_finish, g.el_finish, data.league, g.domestic_cup_finish)}</td>
   </tr>`).join('');
 
@@ -688,8 +688,9 @@ function renderTeamTable() {
     <table>
       <thead><tr>
         <th>Date</th><th>Season</th><th>Last Match</th>
-        <th>LEAGUE W-D-L (Pts)</th><th>Rating</th><th>OVR #</th>
-        <th class="col-hide-mobile">LG #</th>
+        <th>LEAGUE W-D-L (Pts)</th>
+        <th>OVR #</th><th class="col-hide-mobile">LG #</th>
+        <th>Rating</th>
         <th class="col-hide-mobile">Honors</th>
       </tr></thead>
       <tbody>${tableRows}</tbody>
