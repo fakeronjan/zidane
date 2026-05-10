@@ -339,7 +339,7 @@ let teamCache         = {};
 let standingsLeague = 'all';
 let tsLeague        = '';
 let goatLeague      = 'all';
-let historyComp     = '';   // current Champions/League-History selection
+let historyComp     = 'Champions League';   // current Champions/League-History selection
 
 const LEAGUE_OPTIONS = [
   { value: 'EPL',         label: '🏴󠁧󠁢󠁥󠁮󠁧󠁿 EPL'        },
@@ -799,6 +799,7 @@ async function loadChampions() {
   try {
     const res = await fetch(`${BASE}/champions.json`);
     championsData = await res.json();
+    if (historyComp) renderLeagueHistory(historyComp);
   } catch(e) {
     document.getElementById('history-table-wrap').innerHTML =
       `<p class="error">Could not load league history.</p>`;
