@@ -30,6 +30,12 @@ shootout_margin = 0.5    # margin assigned to a penalty shootout win
 home_field_adv  = 0.5    # same as MESSI / OLANDIS
 min_games       = 15     # minimum games in rolling window to appear in final output
 
+# Re-process the most recent N ranking_ids (game-days) on every run so late-
+# arriving data is absorbed. Without this, the first cron after a game-day
+# caches that snapshot and never re-ranks it even if more games for the same
+# day land hours later (CL midweek matches are a classic offender).
+RECOMPUTE_TAIL_DAYS = 7
+
 # ============================================================
 # DATA SOURCE CONFIGURATION
 # ============================================================
@@ -1696,9 +1702,17 @@ max_date_id = int(df['grouped_date_id'].max())
 
 try:
     zidane_df = pd.read_csv('zidane_ratings.csv.gz')
-    max_ranked = int(zidane_df['ranking_id'].max())
-    min_ranked = int(zidane_df['ranking_id'].min())
-    print(f"Existing ratings found. Ranked IDs: {min_ranked} to {max_ranked}")
+    all_ids = sorted(zidane_df['ranking_id'].unique())
+    if len(all_ids) > RECOMPUTE_TAIL_DAYS:
+        tail_threshold = all_ids[-RECOMPUTE_TAIL_DAYS]
+        n_dropped = int((zidane_df['ranking_id'] >= tail_threshold).sum())
+        zidane_df = zidane_df[zidane_df['ranking_id'] < tail_threshold].copy()
+        print(f"  Re-processing tail {RECOMPUTE_TAIL_DAYS} game-days "
+              f"({n_dropped:,} rows dropped from cache for late-arriving-data refresh)")
+    max_ranked = int(zidane_df['ranking_id'].max()) if not zidane_df.empty else -1
+    min_ranked = int(zidane_df['ranking_id'].min()) if not zidane_df.empty else -1
+    if max_ranked >= 0:
+        print(f"Existing ratings found. Ranked IDs: {min_ranked} to {max_ranked}")
 except FileNotFoundError:
     zidane_df = pd.DataFrame(columns=['ranking_id', 'ranking_date', 'season', 'name', 'rating', 'rank'])
     max_ranked = -1
