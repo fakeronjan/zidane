@@ -157,10 +157,10 @@ def record_as_of(team, season, snap_date_str):
     """Domestic W-D-L for team in season as of snap_date_str (forward-filled)."""
     entry = _rec_hist.get((team, season))
     if not entry:
-        return '—'
+        return '0-0-0'
     dates, recs = entry
     idx = bisect_right(dates, snap_date_str) - 1
-    return recs[idx] if idx >= 0 else '—'
+    return recs[idx] if idx >= 0 else '0-0-0'
 
 # Exact-date lookup for current standings (current season only)
 record_by_team_date = {
@@ -190,7 +190,7 @@ standings_data = {
             'team':            r['team'],
             'league':          clean(r['league']),
             'rating':          round(float(r['rating']), 3),
-            'record':          cur_records.get(r['team'], '—'),
+            'record':          cur_records.get(r['team'], '0-0-0'),
             'games_played':    int(r['games_played']),
             'last_match':      clean(r['last_match']),
             'last_match_date': clean(r['last_match_date']),
@@ -243,7 +243,7 @@ goat_data = [
         'season':          r['season'],
         'league':          clean(r['league']),
         'rating':          round(float(r['rating']), 3),
-        'record':          final_record_lookup.get((r['team'], r['season']), '—'),
+        'record':          final_record_lookup.get((r['team'], r['season']), '0-0-0'),
         'domestic_finish': clean(r['domestic_finish']),
         'cl_finish':       clean(r['cl_finish']),
         'el_finish':       clean(r['el_finish']),
@@ -424,7 +424,7 @@ def _dom_entry(team_name, finish_label, season_str):
     team_eos = eos[(eos['team'] == team_name) & (eos['season'] == season_str)]
     if team_eos.empty:
         return {'team': team_name, 'league': '', 'rating': None, 'rank': None, 'lg_rank': None,
-                'record': final_record_lookup.get((team_name, season_str), '—'),
+                'record': final_record_lookup.get((team_name, season_str), '0-0-0'),
                 'domestic_finish': finish_label, 'cl_finish': '', 'el_finish': '', 'domestic_cup_finish': ''}
     r = team_eos.iloc[0]
     return {
@@ -433,7 +433,7 @@ def _dom_entry(team_name, finish_label, season_str):
         'rating':          round(float(r['rating']), 3),
         'rank':            int(r['rank']),
         'lg_rank':         int(r['lg_rank']),
-        'record':          final_record_lookup.get((team_name, season_str), '—'),
+        'record':          final_record_lookup.get((team_name, season_str), '0-0-0'),
         'domestic_finish': finish_label,
         'cl_finish':       clean(r['cl_finish']),
         'el_finish':       clean(r['el_finish']),
@@ -443,7 +443,7 @@ def _dom_entry(team_name, finish_label, season_str):
 def euro_team_dict(team, season):
     team_eos = eos[(eos['team'] == team) & (eos['season'] == season)]
     if team_eos.empty:
-        return {'team': team, 'league': '', 'rating': None, 'rank': None, 'lg_rank': None, 'record': '—',
+        return {'team': team, 'league': '', 'rating': None, 'rank': None, 'lg_rank': None, 'record': '0-0-0',
                 'domestic_finish': '', 'cl_finish': '', 'el_finish': '', 'domestic_cup_finish': ''}
     row = team_eos.iloc[0]
     return {
@@ -452,7 +452,7 @@ def euro_team_dict(team, season):
         'rating':           round(float(row['rating']), 3),
         'rank':             int(row['rank']),
         'lg_rank':          int(row['lg_rank']),
-        'record':           final_record_lookup.get((team, season), '—'),
+        'record':           final_record_lookup.get((team, season), '0-0-0'),
         'domestic_finish':  clean(row['domestic_finish']),
         'cl_finish':        clean(row['cl_finish']),
         'el_finish':        clean(row['el_finish']),
