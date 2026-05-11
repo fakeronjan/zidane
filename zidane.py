@@ -2169,8 +2169,29 @@ season_patch = {d: s for d, s in eos_date_to_sport_season.items() if date_to_sea
 for patch_date, correct_season in season_patch.items():
     final_df.loc[final_df['date'] == patch_date, 'season'] = correct_season
 
-eos_date_set = set(eos_map.index.values)
-final_df['is_end_of_season'] = np.where(final_df['date'].isin(eos_date_set), 1, 0)
+# Per-team end-of-season: flag each team's last actual game-day in
+# that sport-season, not the global sport-season EOS date. The old
+# global approach broke COVID 2019-20: it set EOS to Aug 23 (CL final)
+# for every team in that sport-season, so Liverpool — whose last EPL
+# game was July 26 — got a snapshot 28 days after they stopped playing.
+# Their rolling-window rating decayed during that dead period (other
+# teams' Lisbon UCL knockout games kept entering the window with full
+# recency weight while Liverpool's results stayed frozen), dropping
+# them from rank #1 to rank #51 and rating +0.35 → -0.06.
+#
+# The season-patch logic above still uses eos_map to correct the
+# `season` label on bubble dates (Aug 2020 = "2019-20" not "2020-21").
+# That label patch and the EOS flag are now decoupled.
+team_last_gameday = (
+    final_df[final_df['is_game_day'] == 1]
+    .groupby(['team', 'season'])['date']
+    .max()
+    .reset_index()
+    .rename(columns={'date': '_team_eos_date'})
+)
+final_df = final_df.merge(team_last_gameday, on=['team', 'season'], how='left')
+final_df['is_end_of_season'] = (final_df['date'] == final_df['_team_eos_date']).astype(int)
+final_df = final_df.drop(columns=['_team_eos_date'])
 
 # Merge finish flags (post-season-patch — see comment above merge sites that
 # used to live before this block). Doing it here ensures the bubble-final
