@@ -3,6 +3,7 @@
 # Based on MESSI / LOGAN / OLANDIS architecture
 # ============================================================
 
+import os
 import pandas as pd
 import numpy as np
 import requests
@@ -11,6 +12,14 @@ import re
 from datetime import date
 import warnings
 warnings.filterwarnings('ignore')
+
+# Load .env (local dev). In GitHub Actions, env vars come from repo secrets.
+_env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+if os.path.exists(_env_path):
+    for _line in open(_env_path):
+        if '=' in _line and not _line.strip().startswith('#'):
+            _k, _v = _line.strip().split('=', 1)
+            os.environ.setdefault(_k.strip(), _v.strip())
 
 # ============================================================
 # PARAMETERS
@@ -567,6 +576,7 @@ TEAM_NAME_MAP = {
     'Anderlecht':                       'RSC Anderlecht',
     'Antwerp':                          'Royal Antwerp FC',
     'Brugge':                           'Club Brugge',
+    'Club Brugge KV':                   'Club Brugge',
     'Genk':                             'KRC Genk',
     'Gent':                             'KAA Gent',
     'Standard Liège':                   'Standard Liège',
@@ -882,6 +892,7 @@ TEAM_NAME_MAP = {
     'Shirak':                           'Shirak SC',
     'Astana':                           'FK Astana',
     'Kairat':                           'Kairat',
+    'FK Kairat':                        'Kairat',
     'Aktobe':                           'Aktobe',
     'Tobol':                            'FC Tobol',
     'Ordabasy':                         'FC Ordabasy',
@@ -1396,6 +1407,65 @@ _RE_OLDCUP_MATCH = re.compile(
     r'\s{2,}(.+?)\s*$'
 )
 
+# football-data.org loader. Used for current-season Champions League because
+# openfootball/champions-league is unreliable for the live season (days-to-weeks
+# stale during the knockout rounds). Produces row dicts in the exact shape
+# parse_european_txt returns so it's a drop-in replacement.
+FDA_BASE = 'https://api.football-data.org/v4'
+
+def load_european_from_fda(season, competition_label, fda_code):
+    """Pull a full season of European competition matches from football-data.org.
+    Returns None if the API key is missing or the request fails — caller should
+    fall back to parse_european_txt in that case."""
+    api_key = os.environ.get('FOOTBALL_DATA_KEY')
+    if not api_key:
+        return None
+
+    start_year = int(season[:4])
+    url = f'{FDA_BASE}/competitions/{fda_code}/matches'
+    try:
+        r = requests.get(url,
+                         headers={'X-Auth-Token': api_key},
+                         params={'season': start_year},
+                         timeout=20)
+    except Exception as e:
+        print(f"  Warning: FDA fetch failed for {competition_label} {season}: {e}")
+        return None
+    if r.status_code != 200:
+        print(f"  Warning: FDA HTTP {r.status_code} for {competition_label} {season}")
+        return None
+
+    rows = []
+    for m in r.json().get('matches', []):
+        if m.get('status') != 'FINISHED':
+            continue
+        ft = (m.get('score') or {}).get('fullTime') or {}
+        gh, ga = ft.get('home'), ft.get('away')
+        if gh is None or ga is None:
+            continue
+        home = normalize_team(m['homeTeam']['name'])
+        away = normalize_team(m['awayTeam']['name'])
+        duration = (m.get('score') or {}).get('duration', 'REGULAR')
+        shootout_winner = None
+        if duration == 'PENALTY_SHOOTOUT':
+            pens = (m.get('score') or {}).get('penalties') or {}
+            ph, pa = pens.get('home'), pens.get('away')
+            if ph is not None and pa is not None:
+                shootout_winner = home if ph > pa else away
+        rows.append({
+            'date':            m['utcDate'][:10],
+            'home_team':       home,
+            'away_team':       away,
+            'home_score':      int(gh),
+            'away_score':      int(ga),
+            'competition':     competition_label,
+            'comp_season':     season,
+            'neutral':         m.get('stage') == 'FINAL',
+            'shootout_winner': shootout_winner,
+        })
+    return rows
+
+
 def parse_european_txt(season, competition, filename, repo_base=None):
     """Parse a football.TXT file from openfootball. By default reads from
     the champions-league repo; pass repo_base to read from a country repo
@@ -1572,7 +1642,18 @@ for season in ALL_SEASONS:
     else:
         # 2011-12 onward: original pipeline.
         all_rows.extend(load_domestic_fdco(season))
-        all_rows.extend(parse_european_txt(season, 'Champions League', 'cl.txt'))
+        # Current season: prefer football-data.org for CL (openfootball lags
+        # by days during knockout rounds). Falls back to openfootball on any
+        # FDA failure (missing key, HTTP error, network).
+        # UEL + UECL stay on openfootball pending a Wikipedia-scraper backfill
+        # — FDA's free TIER_ONE plan doesn't cover them.
+        if season_year == _cur_start:
+            cl_rows = load_european_from_fda(season, 'Champions League', 'CL')
+            if cl_rows is None:
+                cl_rows = parse_european_txt(season, 'Champions League', 'cl.txt')
+            all_rows.extend(cl_rows)
+        else:
+            all_rows.extend(parse_european_txt(season, 'Champions League', 'cl.txt'))
         all_rows.extend(parse_european_txt(season, 'Europa League',    'el.txt'))
         # Conference League launched 2021-22.
         if season_year >= 2021:

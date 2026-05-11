@@ -28,6 +28,8 @@ jobs:
 
       - name: Run ratings engine
         run: python zidane.py
+        env:
+          FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
 
       - name: Generate web data
         run: python generate_data.py
