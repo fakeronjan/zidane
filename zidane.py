@@ -5,20 +5,12 @@
 
 import pandas as pd
 import numpy as np
-# rankit==0.2 uses deprecated numpy aliases (np.int, np.float, np.bool) removed in numpy 1.24+.
-# Restore them before rankit import so the Massey solver works.
-if not hasattr(np, 'int'):   np.int = int
-if not hasattr(np, 'float'): np.float = float
-if not hasattr(np, 'bool'):  np.bool = bool
 import requests
 import io
 import re
 from datetime import date
 import warnings
 warnings.filterwarnings('ignore')
-import rankit
-from rankit.Table import Table
-from rankit.Ranker import MasseyRanker
 
 # ============================================================
 # PARAMETERS
@@ -29,6 +21,11 @@ margin_cap      = 4      # max goal margin fed into Massey
 shootout_margin = 0.5    # margin assigned to a penalty shootout win
 home_field_adv  = 0.5    # same as MESSI / OLANDIS
 min_games       = 15     # minimum games in rolling window to appear in final output
+
+# WLS: weights affect observation influence, not margin magnitude.
+# Margin transform (cap=4) + per-game HCA are applied upstream in the
+# data-prep step — solver just takes the pre-prepped adj_margin_home as input.
+WEIGHTING_MODE = "wls"
 
 # Re-process the most recent N ranking_ids (game-days) on every run so late-
 # arriving data is absorbed. Without this, the first cron after a game-day
@@ -93,6 +90,61 @@ DOMESTIC_CUPS = [
 # Dynamically compute the current season
 _today = date.today()
 _cur_start = _today.year if _today.month >= 8 else _today.year - 1
+
+def _solve_massey(window_df, weighting_mode):
+    """
+    Homebrew weighted-least-squares Massey solver. Replaces rankit.
+
+    Takes a window df with home_team, away_team, adj_margin_home (the
+    HCA + cap pre-applied margin from home perspective), and date_weight.
+    Returns DataFrame with columns: name, rating, rank.
+
+    Margin transform + per-game HCA are applied UPSTREAM (since soccer
+    has shootout-margin handling that must run before solver-time
+    transforms). The solver just does WLS on the pre-prepped response
+    variable. Mirrors the COBI port pattern.
+    """
+    teams = sorted(set(window_df["home_team"]) | set(window_df["away_team"]))
+    team_idx = {t: i for i, t in enumerate(teams)}
+    n_teams = len(teams)
+    n_games = len(window_df)
+
+    X = np.zeros((n_games + 1, n_teams))
+    y = np.zeros(n_games + 1)
+    w = np.zeros(n_games + 1)
+
+    adj_margin = window_df["adj_margin_home"].to_numpy(dtype=float)
+    weights    = window_df["date_weight"].to_numpy(dtype=float)
+    home_names = window_df["home_team"].to_numpy()
+    away_names = window_df["away_team"].to_numpy()
+
+    for i in range(n_games):
+        X[i, team_idx[home_names[i]]] = 1.0
+        X[i, team_idx[away_names[i]]] = -1.0
+
+    if weighting_mode == "wls":
+        y[:n_games] = adj_margin
+        w[:n_games] = weights
+    elif weighting_mode == "margin_scale":
+        y[:n_games] = adj_margin * weights
+        w[:n_games] = 1.0
+    else:
+        raise ValueError(f"Unknown WEIGHTING_MODE: {weighting_mode}")
+
+    # Zero-sum constraint via high-weight extra row.
+    X[-1, :] = 1.0
+    y[-1] = 0.0
+    w[-1] = 1.0e8
+
+    sqrt_w = np.sqrt(w)
+    Xw = X * sqrt_w[:, None]
+    yw = y * sqrt_w
+    r, *_ = np.linalg.lstsq(Xw, yw, rcond=None)
+
+    out = pd.DataFrame({"name": teams, "rating": r})
+    out["rank"] = out["rating"].rank(ascending=False, method="min").astype(int)
+    return out
+
 
 def make_season(start_year):
     return f"{start_year}-{str(start_year + 1)[-2:]}"
@@ -1740,12 +1792,11 @@ for i in range(1, max_date_id + 1):
     working_df['game_days_ago'] = i - working_df['grouped_date_id']
     working_df['date_weight']   = 1 - (working_df['game_days_ago'] / window_game_days)
 
-    # No tournament weight — single weight factor
-    working_df['weighted_margin_home'] = working_df['adj_margin_home'] * working_df['date_weight']
-    working_df['weighted_margin_away'] = -working_df['weighted_margin_home']
-
-    # Drop zero-weighted rows to avoid Massey solver issues
-    working_df = working_df[working_df['weighted_margin_home'] != 0]
+    # Drop zero-margin rows (regulation draws — non-zero shootout-decided
+    # 0-0 games have ±shootout_margin and stay in) to match prior rankit
+    # behavior. The solver doesn't fail on zero rows, but matching the
+    # prior filter keeps the solve equivalent to the pre-port pipeline.
+    working_df = working_df[working_df['adj_margin_home'] != 0]
     if len(working_df) < 10:
         continue
 
@@ -1756,12 +1807,7 @@ for i in range(1, max_date_id + 1):
         last_printed_ym = current_ym
 
     try:
-        soccer_table = Table(
-            working_df,
-            ['home_team', 'away_team', 'weighted_margin_home', 'weighted_margin_away']
-        )
-        zidane_massey = MasseyRanker(soccer_table)
-        ranked = zidane_massey.rank()
+        ranked = _solve_massey(working_df, WEIGHTING_MODE)
 
         if ranked['rating'].isna().any() or np.isinf(ranked['rating']).any():
             continue
