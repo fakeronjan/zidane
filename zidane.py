@@ -10,6 +10,7 @@ import requests
 import io
 import re
 from datetime import date
+from bs4 import BeautifulSoup
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -534,6 +535,7 @@ TEAM_NAME_MAP = {
     # England (Wikipedia variants)
     'Aberdeen':                         'Aberdeen FC',
     'Birmingham City':                  'Birmingham City FC',
+    'Celtic':                           'Celtic FC',
     'Charlton Athletic':                'Charlton Athletic FC',
     'Dundalk':                          'Dundalk FC',
     'Fulham':                           'Fulham FC',
@@ -885,6 +887,7 @@ TEAM_NAME_MAP = {
     'Renova':                           'Renova',
     'Alashkert':                        'FC Alashkert',
     'Ararat-Armenia':                   'FC Ararat-Armenia',
+    'Noah':                             'FC Noah',
     'Pyunik':                           'Pyunik',
     'Mika':                             'FC Mika',
     'Banants':                          'FC Banants',
@@ -1407,6 +1410,108 @@ _RE_OLDCUP_MATCH = re.compile(
     r'\s{2,}(.+?)\s*$'
 )
 
+# Wikipedia loader. Used for current-season Europa League and Conference League
+# because openfootball dropped el.txt and conf.txt starting 2025-26 and FDA's
+# free tier doesn't cover those competitions. Same row-dict shape as
+# parse_european_txt — drop-in replacement.
+WIKI_BASE = 'https://en.wikipedia.org'
+WIKI_UA = 'zidane-data-collection/1.0 (https://github.com/fakeronjan/zidane; current-season UEFA backfill)'
+_WIKI_SCORE_RE = re.compile(r'(\d+)\s*[–\-]\s*(\d+)')
+_WIKI_PEN_RE = re.compile(r'Penalties.*?(\d+)\s*[–\-]\s*(\d+)', re.IGNORECASE | re.DOTALL)
+
+
+def _wiki_team_text(th):
+    """Pull the canonical team name from a .fhome or .faway TH cell, skipping
+    the flag-icon's <a> (which links to the country FA, not the team)."""
+    if not th:
+        return None
+    name_span = th.find(attrs={'itemprop': 'name'})
+    scope = name_span if name_span else th
+    for a in scope.find_all('a'):
+        if a.find_parent(class_='flagicon'):
+            continue
+        return a.get_text(strip=True)
+    return scope.get_text(' ', strip=True)
+
+
+def _wiki_parse_footballbox(box, competition, season):
+    """Extract one match row from a <div class='footballbox'>. Returns dict or None
+    if the match is unplayed or unparseable."""
+    date_node = box.find(class_=lambda c: c and 'dtstart' in c.split())
+    if not date_node:
+        return None
+    date_str = date_node.get_text(strip=True)  # YYYY-MM-DD
+    score_node = box.find(class_='fscore')
+    if not score_node:
+        return None
+    sm = _WIKI_SCORE_RE.search(score_node.get_text(' ', strip=True))
+    if not sm:
+        return None
+    home_goals, away_goals = int(sm.group(1)), int(sm.group(2))
+    home_raw = _wiki_team_text(box.find(class_='fhome'))
+    away_raw = _wiki_team_text(box.find(class_='faway'))
+    if not home_raw or not away_raw:
+        return None
+    home = normalize_team(home_raw)
+    away = normalize_team(away_raw)
+    shootout_winner = None
+    if home_goals == away_goals:
+        pen = _WIKI_PEN_RE.search(box.get_text(' ', strip=True))
+        if pen:
+            ph, pa = int(pen.group(1)), int(pen.group(2))
+            if ph != pa:
+                shootout_winner = home if ph > pa else away
+    return {
+        'date':            date_str,
+        'home_team':       home,
+        'away_team':       away,
+        'home_score':      home_goals,
+        'away_score':      away_goals,
+        'competition':     competition,
+        'comp_season':     season,
+        'neutral':         False,
+        'shootout_winner': shootout_winner,
+    }
+
+
+def load_european_from_wikipedia(season, competition_label, wiki_token):
+    """Scrape Wikipedia for current-season UEFA Europa or Conference League
+    matches. Pulls league phase + knockout phase sub-pages. Returns rows in
+    parse_european_txt shape, or None on failure so caller can fall back."""
+    start_year = int(season[:4])
+    end2 = str(start_year + 1)[-2:]
+    # Wikipedia uses U+2013 EN DASH (%E2%80%93) in season slugs.
+    season_slug = f'{start_year}%E2%80%93{end2}'
+    headers = {'User-Agent': WIKI_UA}
+    all_rows = []
+    for sub in ('_league_phase', '_knockout_phase'):
+        url = f'{WIKI_BASE}/wiki/{season_slug}_UEFA_{wiki_token}{sub}'
+        try:
+            r = requests.get(url, headers=headers, timeout=30)
+        except Exception as e:
+            print(f"  Warning: Wikipedia fetch failed for {competition_label}{sub}: {e}")
+            return None
+        if r.status_code != 200:
+            print(f"  Warning: Wikipedia HTTP {r.status_code} for {competition_label}{sub}")
+            return None
+        soup = BeautifulSoup(r.text, 'html.parser')
+        for box in soup.select('div.footballbox'):
+            row = _wiki_parse_footballbox(box, competition_label, season)
+            if row:
+                all_rows.append(row)
+    # Defensive dedupe — knockout legs are home/away separate so legitimate
+    # rematches differ on (home, away) order.
+    seen = set()
+    out = []
+    for r in all_rows:
+        k = (r['date'], r['home_team'], r['away_team'])
+        if k in seen:
+            continue
+        seen.add(k)
+        out.append(r)
+    return out
+
+
 # football-data.org loader. Used for current-season Champions League because
 # openfootball/champions-league is unreliable for the live season (days-to-weeks
 # stale during the knockout rounds). Produces row dicts in the exact shape
@@ -1642,22 +1747,33 @@ for season in ALL_SEASONS:
     else:
         # 2011-12 onward: original pipeline.
         all_rows.extend(load_domestic_fdco(season))
-        # Current season: prefer football-data.org for CL (openfootball lags
-        # by days during knockout rounds). Falls back to openfootball on any
-        # FDA failure (missing key, HTTP error, network).
-        # UEL + UECL stay on openfootball pending a Wikipedia-scraper backfill
-        # — FDA's free TIER_ONE plan doesn't cover them.
         if season_year == _cur_start:
+            # Current season uses live sources because openfootball is unreliable
+            # to absent during the live season:
+            #   CL   -> football-data.org (free TIER_ONE covers it)
+            #   UEL  -> Wikipedia (FDA free tier doesn't cover UEL; openfootball
+            #           dropped el.txt starting 2025-26)
+            #   UECL -> Wikipedia (same reasons as UEL)
+            # Each falls back to openfootball on any failure.
             cl_rows = load_european_from_fda(season, 'Champions League', 'CL')
             if cl_rows is None:
                 cl_rows = parse_european_txt(season, 'Champions League', 'cl.txt')
             all_rows.extend(cl_rows)
+            uel_rows = load_european_from_wikipedia(season, 'Europa League', 'Europa_League')
+            if uel_rows is None:
+                uel_rows = parse_european_txt(season, 'Europa League', 'el.txt')
+            all_rows.extend(uel_rows)
+            if season_year >= 2021:
+                conf_rows = load_european_from_wikipedia(season, 'Conference League', 'Conference_League')
+                if conf_rows is None:
+                    conf_rows = parse_european_txt(season, 'Conference League', 'conf.txt')
+                all_rows.extend(conf_rows)
         else:
+            # Historical seasons: openfootball files are stable, no need to swap.
             all_rows.extend(parse_european_txt(season, 'Champions League', 'cl.txt'))
-        all_rows.extend(parse_european_txt(season, 'Europa League',    'el.txt'))
-        # Conference League launched 2021-22.
-        if season_year >= 2021:
-            all_rows.extend(parse_european_txt(season, 'Conference League', 'conf.txt'))
+            all_rows.extend(parse_european_txt(season, 'Europa League',    'el.txt'))
+            if season_year >= 2021:
+                all_rows.extend(parse_european_txt(season, 'Conference League', 'conf.txt'))
     # UEFA Cup / Europa League historical backfill: 2004-05 -> 2019-20.
     # openfootball coverage of EL only starts at 2020-21, so we layer in the
     # Wikipedia-scraped CSV for the gap. See scrape_el_uefacup.py.
