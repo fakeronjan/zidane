@@ -2030,6 +2030,20 @@ for i in range(1, max_date_id + 1):
 
 zidane_df.sort_values(['ranking_id', 'name'], inplace=True)
 zidane_df.drop_duplicates(keep='first', inplace=True)
+# Subset-aware dedup. ranking_id is just grouped_date_id within a run, but the
+# grouped_date_id assignment can shift between runs (e.g., when new
+# competitions like UEL/UECL Wikipedia backfill add game-days earlier in the
+# timeline, every later grouped_date_id shifts forward). After such a shift,
+# the cache can hold stale (ranking_id, ranking_date) pairs whose dates now
+# overlap with newly-computed ranking_ids. Keep the highest ranking_id per
+# (ranking_date, name) so the freshest snapshot wins.
+n_before = len(zidane_df)
+zidane_df.sort_values(['ranking_date', 'ranking_id'], inplace=True)
+zidane_df = zidane_df.drop_duplicates(subset=['ranking_date', 'name'], keep='last')
+zidane_df.sort_values(['ranking_id', 'name'], inplace=True)
+n_after = len(zidane_df)
+if n_after < n_before:
+    print(f"  Subset-aware dedup: dropped {n_before - n_after:,} stale rows from prior-shape cache")
 zidane_df['ranking_date'] = pd.to_datetime(zidane_df['ranking_date']).dt.date
 zidane_df.to_csv('zidane_ratings.csv.gz', index=False, compression='gzip')
 print("zidane_ratings.csv.gz saved!")
