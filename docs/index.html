@@ -147,6 +147,11 @@
     text-align: center;
   }
   .team-cell { font-weight: 600; }
+
+  /* Clickable cells — deep-link to Team Summary / Standings */
+  .linked { cursor: pointer; }
+  .linked:hover { text-decoration: underline; }
+  .team-cell.linked, .team-link.linked { color: #1a6b8a; }
   .league-badge {
     display: inline-block;
     font-size: 10px;
@@ -334,6 +339,7 @@ let currentSnapshot   = null;
 let goatData          = null;
 let teamsIndex        = null;
 let teamCache         = {};
+let nameToSlug        = {};  // team display name → slug, built from teamsIndex
 
 // Pill state (replaces league-filter / league-select / goat-league-filter / history-league-filter dropdowns)
 let standingsLeague = 'all';
@@ -478,6 +484,101 @@ function resultClass(match, isStale) {
   return '';
 }
 
+// ZIDANE format: "W vs. AC Milan 2-0 (Serie A)" — opponent may be from any
+// of the 5 leagues + UEFA opponents in CL/EL knockouts. abbrevComp only
+// touches the trailing comp tag (Bundesliga→BL, Champions League→CL, etc.).
+function renderLastMatch(raw, season, isStale) {
+  const display = displayMatch(raw);
+  if (!display) return '-';
+  const rc = resultClass(raw, isStale);
+  const m = display.match(/^([WLD])\s+(vs\.?(?:\s*\(N\))?|@)\s+(.+?)\s+(\d+\s*-\s*\d+)\s*(\([^)]+\))?\s*$/);
+  if (!m) return `<span class="${rc}">${abbrevComp(display)}</span>`;
+  const [, letter, venue, opponent, score, comp] = m;
+  const slug = nameToSlug[opponent.trim()];
+  const oppHtml = slug
+    ? `<span class="team-link linked" data-team-slug="${slug}" data-season="${season}">${opponent}</span>`
+    : opponent;
+  const compStr = comp ? ` ${abbrevComp(comp)}` : '';
+  return `<span class="${rc}">${letter} ${venue} ${oppHtml} ${score}${compStr}</span>`;
+}
+
+// ── Deep-link handlers ──────────────────────────────────────────────────────
+// ZIDANE Team Summary pill has no "All" option — pill must match the team's
+// league or populateTeams returns an empty dropdown. So on click we resolve
+// the opponent's league from teamsIndex and set tsLeague to it.
+async function teamLinkClick(slug, season) {
+  if (!slug) return;
+  if (!teamsIndex) await loadTeamsIndex();
+  const t = teamsIndex.find(x => x.slug === slug);
+  if (!t) return;
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  document.querySelector('nav button[data-tab="team-summary"]').classList.add('active');
+  document.getElementById('team-summary').classList.add('active');
+  // Set TS pill to opponent's league + rebuild pill UI
+  tsLeague = t.league;
+  buildLeaguePills('ts-league-pills', false, tsLeague, v => {
+    tsLeague = v;
+    populateTeams(v);
+    document.getElementById('chart-wrap').style.display = 'none';
+    document.getElementById('team-table-wrap').innerHTML =
+      '<p class="loading">Select a team above.</p>';
+    document.getElementById('season-select').innerHTML =
+      '<option value="all">All Seasons</option>';
+  });
+  populateTeams(tsLeague);
+  document.getElementById('team-select').value = slug;
+  await loadTeam(slug);
+  if (season != null && season !== '') {
+    const seasonSel = document.getElementById('season-select');
+    if ([...seasonSel.options].some(o => o.value === String(season))) {
+      seasonSel.value = String(season);
+    }
+  }
+  renderTeamTable();
+}
+
+// Set of values that are valid Standings league filters (the 5 domestic
+// leagues). UEFA cups (CL/EL) don't map — passing one through is a no-op.
+const _STANDINGS_LEAGUES = new Set(LEAGUE_OPTIONS.map(o => o.value));
+
+function seasonLinkClick(season, targetLeague) {
+  if (!season) return;
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('nav button[data-tab="standings"]').classList.add('active');
+  document.getElementById('standings').classList.add('active');
+  // If the source row carried a domestic-league context (League Winners on
+  // an EPL/La Liga/etc. pill, GOAT with a non-"all" pill, or Team Summary
+  // showing one team's league), carry it through to Standings. UEFA cups
+  // (CL/EL) and "all" don't map to a Standings filter — leave the pill at
+  // whatever it was previously.
+  if (targetLeague && _STANDINGS_LEAGUES.has(targetLeague)) {
+    standingsLeague = targetLeague;
+    buildLeaguePills('standings-league-pills', true, standingsLeague, v => {
+      standingsLeague = v;
+      renderStandings();
+    });
+  }
+  document.getElementById('season-filter').value = season;
+  loadSeason(season);
+}
+
+function attachLinks() {
+  document.querySelectorAll('.team-cell.linked, .team-link.linked').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      teamLinkClick(el.dataset.teamSlug, el.dataset.season);
+    });
+  });
+  document.querySelectorAll('[data-season-link].linked').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      seasonLinkClick(el.dataset.seasonLink, el.dataset.targetLeague);
+    });
+  });
+}
+
 const BAR_MIN = -2.0, BAR_MAX = 2.0, BAR_RANGE = 4.0;
 
 function ratingBar(rating) {
@@ -585,19 +686,22 @@ function renderStandings() {
   const idx = snaps.findIndex(s => s.date === currentSnapshot.date);
   const prevDate = idx > 0 ? snaps[idx - 1].date : null;
 
+  const season = currentSeasonData && currentSeasonData.season;
   const rows = teams.map(t => {
     const lgRank = lgRankMap[t.team] || '—';
     const isStale = !!(prevDate && t.last_match_date && t.last_match_date <= prevDate);
+    const slug = nameToSlug[t.team];
+    const teamTd = slug
+      ? `<td class="team-cell linked" data-team-slug="${slug}" data-season="${season}">${t.team}</td>`
+      : `<td class="team-cell">${t.team}</td>`;
     return `<tr>
       <td class="rank-cell">${t.rank}</td>
       <td class="rank-cell col-hide-mobile">${lgRank}</td>
-      <td class="team-cell">${t.team}</td>
+      ${teamTd}
       <td>${leagueBadge(t.league, t.domestic_finish)}</td>
       <td style="font-variant-numeric:tabular-nums;white-space:nowrap">${fmtRecord(t.record)}</td>
       <td>${ratingBar(t.rating)}</td>
-      <td class="last-match-cell">
-        <span class="${resultClass(t.last_match, isStale)}">${abbrevComp(displayMatch(t.last_match)) || '-'}</span>
-      </td>
+      <td class="last-match-cell">${renderLastMatch(t.last_match, season, isStale)}</td>
       <td class="col-hide-mobile" style="font-size:11px;color:#888;white-space:nowrap">${t.last_match_date || ''}</td>
       <td class="col-hide-mobile" style="font-size:11px">${finishBadge(t.domestic_finish, t.cl_finish, t.el_finish, t.league, t.domestic_cup_finish)}</td>
     </tr>`;
@@ -617,6 +721,7 @@ function renderStandings() {
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
+  attachLinks();
 }
 
 document.getElementById('season-filter').addEventListener('change', e => loadSeason(e.target.value));
@@ -631,6 +736,8 @@ async function loadTeamsIndex() {
   try {
     const res = await fetch(`${BASE}/teams_index.json`);
     teamsIndex = await res.json();
+    nameToSlug = {};
+    teamsIndex.forEach(t => { nameToSlug[t.name] = t.slug; });
   } catch(e) {
     document.getElementById('team-select').innerHTML =
       '<option>Could not load teams</option>';
@@ -709,10 +816,8 @@ function renderTeamTable() {
   // Table (reverse chronological)
   const tableRows = [...rows].reverse().map(g => `<tr>
     <td style="white-space:nowrap;color:#888;font-size:12px">${g.date}</td>
-    <td style="font-size:11px;color:#555">${g.season}</td>
-    <td class="last-match-cell">
-      <span class="${resultClass(g.last_match)}">${abbrevComp(displayMatch(g.last_match)) || '-'}</span>
-    </td>
+    <td class="linked" data-season-link="${g.season}" data-target-league="${data.league || ''}" style="font-size:11px;color:#555">${g.season}</td>
+    <td class="last-match-cell">${renderLastMatch(g.last_match, g.season, false)}</td>
     <td style="font-variant-numeric:tabular-nums;white-space:nowrap">${fmtRecord(g.record)}</td>
     <td class="rank-cell">${g.rank}</td>
     <td class="rank-cell col-hide-mobile">${g.lg_rank != null ? g.lg_rank : '—'}</td>
@@ -733,6 +838,7 @@ function renderTeamTable() {
       </tr></thead>
       <tbody>${tableRows}</tbody>
     </table>`;
+  attachLinks();
 }
 
 function drawChart(rows, seasonFilter) {
@@ -849,29 +955,37 @@ function renderLeagueHistory(league) {
     return bits.join(' ');
   }
 
-  function teamCell(t, bg) {
+  function teamCell(t, bg, season) {
     if (!t) return `<td class="${bg}" colspan="5">—</td>`;
     const honors  = honorBadges(t);
     const rating  = t.rating  != null ? t.rating.toFixed(2) : '—';
     const ovrRank = t.rank    != null ? `${t.rank}` : '—';
     const lgRank  = t.lg_rank != null ? `${t.lg_rank}` : '—';
+    const slug = nameToSlug[t.team];
+    const teamTd = slug
+      ? `<td class="${bg} team-cell linked" data-team-slug="${slug}" data-season="${season}" style="white-space:nowrap">${t.team}${honors ? ' ' + honors : ''}</td>`
+      : `<td class="${bg} team-cell" style="white-space:nowrap">${t.team}${honors ? ' ' + honors : ''}</td>`;
     return `
-      <td class="${bg} team-cell" style="white-space:nowrap">${t.team}${honors ? ' ' + honors : ''}</td>
+      ${teamTd}
       <td class="${bg} col-hide-mobile" style="font-variant-numeric:tabular-nums;white-space:nowrap;color:#888;font-size:0.85em">${ovrRank}</td>
       <td class="${bg} col-hide-mobile" style="font-variant-numeric:tabular-nums;white-space:nowrap;color:#888;font-size:0.85em">${lgRank}</td>
       <td class="${bg} rating-cell" style="font-variant-numeric:tabular-nums">${rating}</td>
       <td class="${bg} col-hide-mobile" style="font-variant-numeric:tabular-nums;white-space:nowrap">${fmtRecord(t.record)}</td>`;
   }
 
+  // Carry through the source pill only when it's a domestic league. UEFA
+  // cups (CL/EL) don't map to a Standings filter — leave it blank so
+  // seasonLinkClick preserves Standings' own pill state.
+  const targetLg = isCup ? '' : league;
   const rows = entries.map(e => {
     const divCell = isCup && e.final_score
       ? `<td class="divider-col" style="text-align:center;font-size:11px;font-weight:600;white-space:nowrap;width:52px;padding:0 4px">${e.final_score}</td>`
       : `<td class="divider-col"></td>`;
     return `<tr>
-      <td class="season-cell">${e.season}</td>
-      ${teamCell(e.champion,  'col-champ')}
+      <td class="season-cell linked" data-season-link="${e.season}" data-target-league="${targetLg}">${e.season}</td>
+      ${teamCell(e.champion,  'col-champ', e.season)}
       ${divCell}
-      ${teamCell(e.runner_up, 'col-ru')}
+      ${teamCell(e.runner_up, 'col-ru', e.season)}
     </tr>`;
   }).join('');
 
@@ -902,6 +1016,7 @@ function renderLeagueHistory(league) {
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
+  attachLinks();
 }
 
 
@@ -922,15 +1037,26 @@ function renderGoat() {
   let teams = goatData;
   if (goatLeague !== 'all') teams = teams.filter(t => t.league === goatLeague);
 
-  const rows = teams.map(t => `<tr>
+  const rows = teams.map(t => {
+    const slug = nameToSlug[t.team];
+    const teamTd = slug
+      ? `<td class="team-cell linked" data-team-slug="${slug}" data-season="${t.season}">${t.team}</td>`
+      : `<td class="team-cell">${t.team}</td>`;
+    // Carry the team's own league as the target — most natural for GOAT
+    // (each row IS a league season). Falls back to active goatLeague filter
+    // if it happens to differ. Either way, only domestic leagues match the
+    // Standings filter; "all" is dropped by seasonLinkClick.
+    const targetLg = (goatLeague !== 'all' ? goatLeague : t.league) || '';
+    return `<tr>
     <td class="rank-cell">${t.rank}</td>
-    <td style="text-align:center;white-space:nowrap">${t.season}</td>
-    <td class="team-cell">${t.team}</td>
+    <td class="season-cell linked" data-season-link="${t.season}" data-target-league="${targetLg}" style="text-align:center;white-space:nowrap">${t.season}</td>
+    ${teamTd}
     <td>${leagueBadge(t.league, t.domestic_finish)}</td>
     <td>${ratingBar(t.rating)}</td>
     <td style="font-variant-numeric:tabular-nums;white-space:nowrap" class="col-hide-mobile">${fmtRecord(t.record)}</td>
     <td class="col-hide-mobile" style="font-size:11px">${finishBadge(t.domestic_finish, t.cl_finish, t.el_finish, t.league, t.domestic_cup_finish)}</td>
-  </tr>`).join('');
+  </tr>`;
+  }).join('');
 
   document.getElementById('goat-table-wrap').innerHTML = `
     <table>
@@ -944,6 +1070,7 @@ function renderGoat() {
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
+  attachLinks();
 }
 
 // ── Init ─────────────────────────────────────────────────────────────────────
@@ -959,10 +1086,14 @@ buildLeaguePillsFromOpts('history-uefa-pills', UEFA_OPTIONS, historyComp, v => {
   historyComp = v;
   renderLeagueHistory(v);
 }, ['history-domestic-pills']);
-initStandings();
-loadTeamsIndex();
-loadChampions();
-loadGoat();
+// Load teams_index first so opponent/slug lookups are populated before any
+// table renders — avoids a double-render flash on initial page load.
+(async () => {
+  await loadTeamsIndex();
+  initStandings();
+  loadChampions();
+  loadGoat();
+})();
 </script>
 </body>
 </html>
