@@ -306,7 +306,7 @@
   <div class="league-pills" id="ts-league-pills"></div>
   <div class="controls">
     <select id="team-select" disabled><option value="">— Select a team —</option></select>
-    <select id="season-select"><option value="all">All Seasons</option></select>
+    <select id="season-select"><option value="all">All seasons</option></select>
     <select id="date-type-select">
       <option value="all">All dates</option>
       <option value="eos">End of season</option>
@@ -524,7 +524,7 @@ async function teamLinkClick(slug, season) {
     document.getElementById('team-table-wrap').innerHTML =
       '<p class="loading">Select a team above.</p>';
     document.getElementById('season-select').innerHTML =
-      '<option value="all">All Seasons</option>';
+      '<option value="all">All seasons</option>';
   });
   populateTeams(tsLeague);
   document.getElementById('team-select').value = slug;
@@ -764,7 +764,7 @@ buildLeaguePills('ts-league-pills', false, tsLeague, v => {
   document.getElementById('team-table-wrap').innerHTML =
     '<p class="loading">Select a team above.</p>';
   document.getElementById('season-select').innerHTML =
-    '<option value="all">All Seasons</option>';
+    '<option value="all">All seasons</option>';
 });
 
 async function loadTeam(slug) {
@@ -784,7 +784,7 @@ async function loadTeam(slug) {
   const data = teamCache[slug];
   const seasons = Object.keys(data.seasons).sort().reverse();
   const seasonSel = document.getElementById('season-select');
-  seasonSel.innerHTML = '<option value="all">All Seasons</option>';
+  seasonSel.innerHTML = '<option value="all">All seasons</option>';
   seasons.forEach(s => {
     const opt = document.createElement('option');
     opt.value = s;
