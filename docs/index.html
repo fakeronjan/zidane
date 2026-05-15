@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ZIDANE — European Club Soccer Power Rankings</title>
+<title>ZIDANE - European Club Soccer Power Rankings</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -148,7 +148,7 @@
   }
   .team-cell { font-weight: 600; }
 
-  /* Clickable cells — deep-link to Team Summary / Standings */
+  /* Clickable cells - deep-link to Team Summary / Standings */
   .linked { cursor: pointer; }
   .linked:hover { text-decoration: underline; }
   .team-cell.linked, .team-link.linked { color: #1a6b8a; }
@@ -305,7 +305,7 @@
 <div id="team-summary" class="tab">
   <div class="league-pills" id="ts-league-pills"></div>
   <div class="controls">
-    <select id="team-select" disabled><option value="">— Select a team —</option></select>
+    <select id="team-select" disabled><option value="">- Select a team -</option></select>
     <select id="season-select"><option value="all">All seasons</option></select>
     <select id="date-type-select">
       <option value="all">All dates</option>
@@ -328,7 +328,7 @@
 <!-- ── GOAT TABLE ───────────────────────────────────────────────────────── -->
 <div id="goat" class="tab">
   <div class="league-pills" id="goat-league-pills"></div>
-  <p class="data-note">Top 50 single-season ratings · Eligibility requires winning the domestic league or the Champions League. Limited to 2011–12 onward (the era where Champions League data is in our rolling window — earlier seasons would be domestic-only ratings).</p>
+  <p class="data-note">Top 50 single-season ratings · Eligibility requires winning the domestic league or the Champions League. Limited to 2011–12 onward (the era where Champions League data is in our rolling window - earlier seasons would be domestic-only ratings).</p>
   <div id="goat-table-wrap"><p class="loading">Loading GOAT table...</p></div>
 </div>
 
@@ -398,7 +398,7 @@ const _PLACEHOLDER_LM = new Set(['No match yet', 'No competitive match yet', 'No
 function displayMatch(s) { return (!s || _PLACEHOLDER_LM.has(s)) ? '' : s; }
 
 function fmtRecord(rec) {
-  if (!rec || rec === '—') return '0-0-0';
+  if (!rec || rec === '-') return '0-0-0';
   const parts = rec.split('-');
   if (parts.length !== 3) return rec;
   const w = parseInt(parts[0]), d = parseInt(parts[1]), l = parseInt(parts[2]);
@@ -447,7 +447,7 @@ function leagueBadge(league, dom) {
   if (dom === 'Champion')  return `<span class="finish-badge finish-champion">${lg} 🏆</span>`;
   if (dom === 'Runner-Up') return `<span class="finish-badge finish-runner">${lg} 🥈</span>`;
   // In-progress leaders (dom === '1st' or '2nd') fall through to the default
-  // colored pill — they intentionally get NO special highlight to stay
+  // colored pill - they intentionally get NO special highlight to stay
   // consistent with other leagues, where only confirmed end-of-season finishes
   // earn a trophy/medal badge.
   // Default: colored per-league pill with country flag emoji
@@ -484,7 +484,7 @@ function resultClass(match, isStale) {
   return '';
 }
 
-// ZIDANE format: "W vs. AC Milan 2-0 (Serie A)" — opponent may be from any
+// ZIDANE format: "W vs. AC Milan 2-0 (Serie A)" - opponent may be from any
 // of the 5 leagues + UEFA opponents in CL/EL knockouts. abbrevComp only
 // touches the trailing comp tag (Bundesliga→BL, Champions League→CL, etc.).
 function renderLastMatch(raw, season, isStale) {
@@ -503,7 +503,7 @@ function renderLastMatch(raw, season, isStale) {
 }
 
 // ── Deep-link handlers ──────────────────────────────────────────────────────
-// ZIDANE Team Summary pill has no "All" option — pill must match the team's
+// ZIDANE Team Summary pill has no "All" option - pill must match the team's
 // league or populateTeams returns an empty dropdown. So on click we resolve
 // the opponent's league from teamsIndex and set tsLeague to it.
 async function teamLinkClick(slug, season) {
@@ -539,7 +539,7 @@ async function teamLinkClick(slug, season) {
 }
 
 // Set of values that are valid Standings league filters (the 5 domestic
-// leagues). UEFA cups (CL/EL) don't map — passing one through is a no-op.
+// leagues). UEFA cups (CL/EL) don't map - passing one through is a no-op.
 const _STANDINGS_LEAGUES = new Set(LEAGUE_OPTIONS.map(o => o.value));
 
 function seasonLinkClick(season, targetLeague) {
@@ -551,7 +551,7 @@ function seasonLinkClick(season, targetLeague) {
   // If the source row carried a domestic-league context (League Winners on
   // an EPL/La Liga/etc. pill, GOAT with a non-"all" pill, or Team Summary
   // showing one team's league), carry it through to Standings. UEFA cups
-  // (CL/EL) and "all" don't map to a Standings filter — leave the pill at
+  // (CL/EL) and "all" don't map to a Standings filter - leave the pill at
   // whatever it was previously.
   if (targetLeague && _STANDINGS_LEAGUES.has(targetLeague)) {
     standingsLeague = targetLeague;
@@ -688,7 +688,7 @@ function renderStandings() {
 
   const season = currentSeasonData && currentSeasonData.season;
   const rows = teams.map(t => {
-    const lgRank = lgRankMap[t.team] || '—';
+    const lgRank = lgRankMap[t.team] || '-';
     const isStale = !!(prevDate && t.last_match_date && t.last_match_date <= prevDate);
     const slug = nameToSlug[t.team];
     const teamTd = slug
@@ -746,7 +746,7 @@ async function loadTeamsIndex() {
 
 function populateTeams(league) {
   const sel = document.getElementById('team-select');
-  sel.innerHTML = '<option value="">— Select a team —</option>';
+  sel.innerHTML = '<option value="">- Select a team -</option>';
   if (!league || !teamsIndex) { sel.disabled = true; return; }
   teamsIndex.filter(t => t.league === league).forEach(t => {
     const opt = document.createElement('option');
@@ -820,7 +820,7 @@ function renderTeamTable() {
     <td class="last-match-cell">${renderLastMatch(g.last_match, g.season, false)}</td>
     <td style="font-variant-numeric:tabular-nums;white-space:nowrap">${fmtRecord(g.record)}</td>
     <td class="rank-cell">${g.rank}</td>
-    <td class="rank-cell col-hide-mobile">${g.lg_rank != null ? g.lg_rank : '—'}</td>
+    <td class="rank-cell col-hide-mobile">${g.lg_rank != null ? g.lg_rank : '-'}</td>
     <td>${ratingBar(g.rating)}</td>
     <td class="col-hide-mobile" style="font-size:11px">${leagueBadge(data.league, g.domestic_finish)}</td>
     <td class="col-hide-mobile" style="font-size:11px">${finishBadge(g.domestic_finish, g.cl_finish, g.el_finish, data.league, g.domestic_cup_finish)}</td>
@@ -956,11 +956,11 @@ function renderLeagueHistory(league) {
   }
 
   function teamCell(t, bg, season) {
-    if (!t) return `<td class="${bg}" colspan="5">—</td>`;
+    if (!t) return `<td class="${bg}" colspan="5">-</td>`;
     const honors  = honorBadges(t);
-    const rating  = t.rating  != null ? t.rating.toFixed(2) : '—';
-    const ovrRank = t.rank    != null ? `${t.rank}` : '—';
-    const lgRank  = t.lg_rank != null ? `${t.lg_rank}` : '—';
+    const rating  = t.rating  != null ? t.rating.toFixed(2) : '-';
+    const ovrRank = t.rank    != null ? `${t.rank}` : '-';
+    const lgRank  = t.lg_rank != null ? `${t.lg_rank}` : '-';
     const slug = nameToSlug[t.team];
     const teamTd = slug
       ? `<td class="${bg} team-cell linked" data-team-slug="${slug}" data-season="${season}" style="white-space:nowrap">${t.team}${honors ? ' ' + honors : ''}</td>`
@@ -974,7 +974,7 @@ function renderLeagueHistory(league) {
   }
 
   // Carry through the source pill only when it's a domestic league. UEFA
-  // cups (CL/EL) don't map to a Standings filter — leave it blank so
+  // cups (CL/EL) don't map to a Standings filter - leave it blank so
   // seasonLinkClick preserves Standings' own pill state.
   const targetLg = isCup ? '' : league;
   const rows = entries.map(e => {
@@ -1042,7 +1042,7 @@ function renderGoat() {
     const teamTd = slug
       ? `<td class="team-cell linked" data-team-slug="${slug}" data-season="${t.season}">${t.team}</td>`
       : `<td class="team-cell">${t.team}</td>`;
-    // Carry the team's own league as the target — most natural for GOAT
+    // Carry the team's own league as the target - most natural for GOAT
     // (each row IS a league season). Falls back to active goatLeague filter
     // if it happens to differ. Either way, only domestic leagues match the
     // Standings filter; "all" is dropped by seasonLinkClick.
@@ -1087,7 +1087,7 @@ buildLeaguePillsFromOpts('history-uefa-pills', UEFA_OPTIONS, historyComp, v => {
   renderLeagueHistory(v);
 }, ['history-domestic-pills']);
 // Load teams_index first so opponent/slug lookups are populated before any
-// table renders — avoids a double-render flash on initial page load.
+// table renders - avoids a double-render flash on initial page load.
 (async () => {
   await loadTeamsIndex();
   initStandings();
