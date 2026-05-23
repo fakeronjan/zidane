@@ -1886,15 +1886,15 @@ df['home_result_flag'] = np.where(df['home_win'] == 1, 'W', np.where(df['home_wi
 df['away_result_flag'] = np.where(df['away_win'] == 1, 'W', np.where(df['away_win'] == 0.5, 'D', 'L'))
 
 df['home_last_match'] = (
-    df['home_result_flag'] + ' vs. ' +
-    df['away_team'] + ' ' +
+    df['home_result_flag'] + ' ' +
     df['home_score_int'].map(str) + '-' + df['away_score_int'].map(str) +
+    ' vs. ' + df['away_team'] +
     ' (' + df['competition'] + ')'
 )
 df['away_last_match'] = (
-    df['away_result_flag'] + ' @ ' +
-    df['home_team'] + ' ' +
+    df['away_result_flag'] + ' ' +
     df['away_score_int'].map(str) + '-' + df['home_score_int'].map(str) +
+    ' @ ' + df['home_team'] +
     ' (' + df['competition'] + ')'
 )
 

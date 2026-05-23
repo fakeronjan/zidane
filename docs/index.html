@@ -532,15 +532,15 @@ function renderLastMatch(raw, season, isStale) {
   const display = displayMatch(raw);
   if (!display) return '-';
   const rc = resultClass(raw, isStale);
-  const m = display.match(/^([WLD])\s+(vs\.?(?:\s*\(N\))?|@)\s+(.+?)\s+(\d+\s*-\s*\d+)\s*(\([^)]+\))?\s*$/);
+  const m = display.match(/^([WLDT])\s+(\d+\s*-\s*\d+)\s+(vs\.?(?:\s*\(N\))?|@)\s+(.+?)\s*(\([^)]+\))?\s*$/);
   if (!m) return `<span class="${rc}">${abbrevComp(display)}</span>`;
-  const [, letter, venue, opponent, score, comp] = m;
+  const [, letter, score, venue, opponent, comp] = m;
   const slug = nameToSlug[opponent.trim()];
   const oppHtml = slug
     ? `<span class="team-link linked" data-team-slug="${slug}" data-season="${season}">${opponent}</span>`
     : opponent;
   const compStr = comp ? ` ${abbrevComp(comp)}` : '';
-  return `<span class="${rc}">${letter} ${venue} ${oppHtml} ${score}${compStr}</span>`;
+  return `<span class="${rc}">${letter} ${score} ${venue} ${oppHtml}${compStr}</span>`;
 }
 
 // ── Deep-link handlers ──────────────────────────────────────────────────────
