@@ -265,7 +265,26 @@ with open('docs/data/goat_teams.json', 'w') as f:
 
 # ── 3. Per-team JSON files (game days only) ───────────────────────────────────
 print("Writing per-team JSON files...")
-game_days = df[(df['is_game_day'] == 1) | (df['is_end_of_season'] == 1)].copy()
+game_days = df[
+    (df['is_game_day'] == 1)
+    | (df['is_end_of_season'] == 1)
+    | (df['is_domestic_final_day'] == 1)
+    | (df['is_cl_final_day'] == 1)
+].copy()
+
+# CL participation per (team, season) — surfaced as `played_cl` per-row so the
+# Team Summary 'End of Champions League' filter can hide teams that didn't play
+# in CL that season (cl_finish is only populated for Champion/Runner-Up).
+_cl_games = games_raw[games_raw['competition'] == 'Champions League']
+_cl_participants = set(
+    zip(_cl_games['home_team'], _cl_games['season'])
+) | set(
+    zip(_cl_games['away_team'], _cl_games['season'])
+)
+game_days['played_cl'] = [
+    1 if (t, s) in _cl_participants else 0
+    for t, s in zip(game_days['team'], game_days['season'])
+]
 game_days = game_days.sort_values(['team', 'season', 'date'])
 
 all_teams = sorted(df['team'].unique())
@@ -282,6 +301,7 @@ for team in all_teams:
 
     seasons = {}
     for season, sdf in tdf.groupby('season'):
+        played_cl = int(sdf['played_cl'].max()) if 'played_cl' in sdf.columns else 0
         seasons[season] = [
             {
                 'date':              str(r['date']),
@@ -289,6 +309,9 @@ for team in all_teams:
                 'rank':              int(r['rank']),
                 'lg_rank':           int(r['lg_rank']),
                 'is_end_of_season':  int(r['is_end_of_season']),
+                'is_cl_final_day':       int(r.get('is_cl_final_day', 0) or 0),
+                'is_domestic_final_day': int(r.get('is_domestic_final_day', 0) or 0),
+                'played_cl':         played_cl,
                 'record':            record_as_of(team, season, str(r['date'])),
                 'last_match':        clean(r['last_match']),
                 'domestic_finish':   clean(r['domestic_finish']),
