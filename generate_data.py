@@ -39,6 +39,13 @@ for season in df['season'].unique():
         df.loc[df['season'] == season, 'cl_finish'] = ''
         df.loc[df['season'] == season, 'el_finish'] = ''
         df.loc[df['season'] == season, 'domestic_cup_finish'] = ''
+        # Strip end-of-competition flags - zidane.py sets them to the latest
+        # date seen, which for an in-progress season is just "today" rather
+        # than the actual final.
+        if 'is_cl_final_day' in df.columns:
+            df.loc[df['season'] == season, 'is_cl_final_day'] = 0
+        if 'is_domestic_final_day' in df.columns:
+            df.loc[df['season'] == season, 'is_domestic_final_day'] = 0
 
 def clean(val):
     if pd.isna(val):
