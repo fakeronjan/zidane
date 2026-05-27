@@ -18,12 +18,21 @@ df = pd.read_csv('zidane_ratings_final.csv')
 df['date'] = pd.to_datetime(df['date']).dt.date
 df['last_match_date'] = pd.to_datetime(df['last_match_date'], errors='coerce').dt.date
 
+# COVID 2019-20: Copa del Rey final was deferred 10 months to 2021-04-03.
+# Every other season since 2010-11 wrapped by June 10 (2023 CL final, Istanbul).
+SEASON_COMPLETE_OVERRIDES = {
+    '2019-20': date(2021, 5, 1),
+}
+
 def season_is_complete(season_str):
-    """Season YYYY-YY is complete once today is past July 31 of its end year.
-    Derives end_year from the 4-digit start year so "1992-93" parses correctly."""
+    """Season YYYY-YY is complete once today is past June 12 of its end year.
+    2-day cushion over the latest observed non-COVID final. 2019-20 has an
+    explicit override for the COVID-deferred Copa del Rey final."""
     start_year = int(season_str[:4])
     end_year   = start_year + 1
-    return date.today() > date(end_year, 7, 31)
+    if season_str in SEASON_COMPLETE_OVERRIDES:
+        return date.today() > SEASON_COMPLETE_OVERRIDES[season_str]
+    return date.today() > date(end_year, 6, 12)
 
 # Fix finish labels for any in-progress seasons still in the cached CSV.
 # zidane.py now handles this correctly on a fresh run; this patch covers

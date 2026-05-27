@@ -2093,14 +2093,23 @@ print(f"zidane_standings.csv saved! ({len(standings_df)} rows)")
 
 print("Detecting competition finishes...")
 
+# COVID 2019-20: Copa del Rey final was deferred 10 months to 2021-04-03.
+# Every other season since 2010-11 wrapped by June 10 (2023 CL final, Istanbul).
+SEASON_COMPLETE_OVERRIDES = {
+    '2019-20': date(2021, 5, 1),
+}
+
 def season_is_complete(season_str):
-    """A season YYYY-YY is complete once today is past July 31 of the end year.
-    This clears the CL final (late May/June) before marking anything done.
+    """A season YYYY-YY is complete once today is past June 12 of the end year.
+    2-day cushion over the latest observed non-COVID final. 2019-20 has an
+    explicit override for the COVID-deferred Copa del Rey final.
     Derives end_year from the 4-digit start year so historical seasons like
     "1992-93" don't get parsed as 2092-93."""
     start_year = int(season_str[:4])
     end_year   = start_year + 1
-    return date.today() > date(end_year, 7, 31)
+    if season_str in SEASON_COMPLETE_OVERRIDES:
+        return date.today() > SEASON_COMPLETE_OVERRIDES[season_str]
+    return date.today() > date(end_year, 6, 12)
 
 domestic_records = []
 cl_records       = []
