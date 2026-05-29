@@ -1808,6 +1808,30 @@ null_scores = df[df['home_score'].isna() | df['away_score'].isna()]
 if len(null_scores):
     print(f"  WARNING: {len(null_scores)} rows with missing scores — check loaders")
 
+# Treat the committed games file as the persistent database: a run may ADD new
+# games or CORRECT existing ones, but must never DELETE games we already have
+# just because this run's live fetch came back short. ZIDANE reassembles the
+# full history every run from mixed sources (openfootball, Wikipedia, FDA), and
+# Wikipedia/FDA responses are not perfectly stable — a missed scrape would
+# otherwise erase real history and desync the positional-id ratings cache.
+# Fresh rows win for games present in both (so late-arriving scores land);
+# DB-only games are preserved.
+if os.path.exists('all_club_games.csv'):
+    _prev = pd.read_csv('all_club_games.csv')
+    _prev['date'] = pd.to_datetime(_prev['date'], errors='coerce')
+    _key = ['date', 'home_team', 'away_team']
+    _fresh = df.copy();  _fresh['_src_priority'] = 0
+    _prevp = _prev.copy(); _prevp['_src_priority'] = 1
+    _combined = pd.concat([_fresh, _prevp], ignore_index=True, sort=False)
+    _combined = _combined.sort_values('_src_priority').drop_duplicates(subset=_key, keep='first')
+    _fresh_keys = set(map(tuple, df[_key].astype(str).values))
+    _preserved = sum(1 for k in map(tuple, _prev[_key].astype(str).values) if k not in _fresh_keys)
+    if _preserved:
+        print(f"[db-union] preserved {_preserved:,} games already in the database "
+              f"that this run's fetch did not return (flaky source — not deleting history)")
+    df = (_combined.drop(columns=['_src_priority'])
+                   .sort_values('date').reset_index(drop=True))
+
 df.to_csv('all_club_games.csv', index=False)
 print(f"Master game file saved: {len(df)} rows")
 
