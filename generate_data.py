@@ -266,11 +266,26 @@ final_record_lookup = {
     )
 }
 
+# Short / disrupted seasons. ZIDANE 2019-20 is the only meaningful entry
+# (Ligue 1 cancellation noted prose-side; full per-league variants would be
+# overkill for one season's complexity).
+SHORT_SEASONS = {
+    '2019-20': {
+        'tag': 'COVID disrupted',
+        'category': 'covid',
+        'note': "COVID disrupted the 2019-20 European season. Premier League / La Liga / Serie A / Bundesliga finished their seasons behind closed doors (May-August 2020). Ligue 1 was the only major league to cancel outright -- only 27 of 38 matches played, PSG declared champion on points-per-game. UCL/UEL knockouts moved to single-site bubbles in Lisbon/Cologne in August.",
+    },
+}
+
 goat_data = [
     {
         'rank':            i + 1,
         'team':            r['team'],
         'season':          r['season'],
+        'short_season':          r['season'] in SHORT_SEASONS,
+        'short_season_tag':      SHORT_SEASONS.get(r['season'], {}).get('tag', ''),
+        'short_season_category': SHORT_SEASONS.get(r['season'], {}).get('category', ''),
+        'short_season_note':     SHORT_SEASONS.get(r['season'], {}).get('note', ''),
         'league':          clean(r['league']),
         'rating':          round(float(r['rating']), 3),
         'record':          final_record_lookup.get((r['team'], r['season']), '0-0-0'),
@@ -428,6 +443,10 @@ seasons_meta = {
     'first_date': str(games_raw['date'].min().date()),
     'last_date':  str(games_raw['date'].max().date()),
     'generated_at': datetime.now(timezone.utc).isoformat(),
+    'disrupted_seasons': {
+        s: {'tag': info['tag'], 'category': info['category'], 'note': info['note']}
+        for s, info in SHORT_SEASONS.items()
+    },
 }
 with open('docs/data/seasons_index.json', 'w') as f:
     json.dump(seasons_meta, f, separators=(',', ':'))
