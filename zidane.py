@@ -34,14 +34,13 @@ min_games       = 15     # minimum games in rolling window to appear in final ou
 
 # Tournament weight multipliers (applied to date_weight at solver time).
 # UCL is the only cross-league signal so it gets a boost; UEL/UECL stay 1.0x.
-# Knockout games (Feb-June, R16 onward) carry even more signal -- these are
-# the highest-stakes inter-league matchups. Fleet consistency: MESSI
+# Knockout games (R16+) carry even more signal -- these are the highest-stakes
+# inter-league matchups. Knockout identification is via bracket walk (see
+# label_ucl_knockout below) so it handles COVID 2019-20 Lisbon (Aug knockouts)
+# and the 2024-25+ new format playoff round. Fleet consistency: MESSI
 # continental = 1.5x, FORSBERG Olympics/WCoH = 1.5x.
 UCL_GROUP_WEIGHT     = 1.5    # UCL group / league phase
-UCL_KNOCKOUT_WEIGHT  = 2.0    # UCL knockout rounds (R16+)
-# Heuristic for knockout: Feb-June matches across all eras (R16 starts Feb,
-# final in late May / early June).
-UCL_KNOCKOUT_MONTHS  = {2, 3, 4, 5, 6}
+UCL_KNOCKOUT_WEIGHT  = 2.0    # UCL knockout rounds (R16+, playoff round in new format)
 
 # WLS: weights affect observation influence, not margin magnitude.
 # Margin transform (cap=4) + per-game HCA are applied upstream in the
@@ -165,6 +164,85 @@ def _solve_massey(window_df, weighting_mode):
     out = pd.DataFrame({"name": teams, "rating": r})
     out["rank"] = out["rating"].rank(ascending=False, method="min").astype(int)
     return out
+
+
+def label_ucl_knockout(df):
+    """Add an `is_ucl_knockout` flag to UCL games via bracket walk.
+
+    For each completed UCL season we identify the FINAL as the chronologically
+    last UCL game, then walk backwards through rounds (SF, QF, R16, playoff)
+    by finding each round-team's previous opponent in the post-group window.
+    All games between paired teams (outside Sep-Jan, which spans every era's
+    group / league phase) are marked as knockout.
+
+    Robust to:
+    - COVID 2019-20 Lisbon (QF/SF/F + half of R16 second legs in Aug 2020)
+    - 2024-25+ new format with knockout playoff round between league phase
+      and R16
+    - Old single-group-stage formats (1992-93 onward)
+
+    The current in-progress season (no final played yet) falls back to a
+    calendar heuristic (months 2-6 = knockout) because the walk needs a
+    final to anchor on.
+    """
+    df = df.copy()
+    df['is_ucl_knockout'] = False
+    ucl_mask = df['competition'] == 'Champions League'
+    if not ucl_mask.any():
+        return df
+
+    # Sep-Jan covers every era's group / league phase. No UCL knockout game has
+    # ever been played in those months in any format.
+    PRE_KNOCKOUT_MONTHS = {9, 10, 11, 12, 1}
+    max_data_date = df['date'].max()
+
+    for season in df.loc[ucl_mask, 'comp_season'].dropna().unique():
+        s_mask = ucl_mask & (df['comp_season'] == season)
+        s = df[s_mask].sort_values('date')
+        if len(s) < 5:
+            continue
+
+        # In-progress current season: fall back to calendar heuristic.
+        if (max_data_date - s['date'].max()) < pd.Timedelta(days=21):
+            df.loc[s_mask & df['date'].dt.month.isin({2, 3, 4, 5, 6}), 'is_ucl_knockout'] = True
+            continue
+
+        final_game = s.iloc[-1]
+        knockout_idx = {final_game.name}
+        current_round = {final_game['home_team'], final_game['away_team']}
+
+        # Up to 6 rounds of walk-back (SF, QF, R16, playoff in new format,
+        # plus safety margin for any future format).
+        for _ in range(6):
+            new_round_teams, new_round_idx = set(), set()
+            for team in current_round:
+                team_games = s[
+                    ((s['home_team'] == team) | (s['away_team'] == team)) &
+                    (~s.index.isin(knockout_idx)) &
+                    (~s['date'].dt.month.isin(PRE_KNOCKOUT_MONTHS))
+                ].sort_values('date', ascending=False)
+                prev_opp = None
+                for _, g in team_games.iterrows():
+                    o = g['away_team'] if g['home_team'] == team else g['home_team']
+                    if o not in current_round:
+                        prev_opp = o
+                        break
+                if prev_opp is None:
+                    continue
+                new_round_teams.add(prev_opp)
+                pair_mask = s_mask & (
+                    ((df['home_team'] == team) & (df['away_team'] == prev_opp)) |
+                    ((df['home_team'] == prev_opp) & (df['away_team'] == team))
+                ) & ~df['date'].dt.month.isin(PRE_KNOCKOUT_MONTHS)
+                new_round_idx |= set(df[pair_mask].index)
+            if not new_round_teams:
+                break
+            knockout_idx |= new_round_idx
+            current_round |= new_round_teams
+
+        df.loc[list(knockout_idx), 'is_ucl_knockout'] = True
+
+    return df
 
 
 def make_season(start_year):
@@ -1846,6 +1924,13 @@ if os.path.exists('all_club_games.csv'):
 df.to_csv('all_club_games.csv', index=False)
 print(f"Master game file saved: {len(df)} rows")
 
+# Label UCL knockout games via bracket walk (post-data-assembly, pre-ratings).
+print("Labelling UCL knockout games via bracket walk...")
+df = label_ucl_knockout(df)
+_ucl_n = int(df['is_ucl_knockout'].sum())
+print(f"  {_ucl_n:,} UCL knockout games labelled "
+      f"(of {int((df['competition']=='Champions League').sum()):,} total UCL games)")
+
 # ============================================================
 # STEP 5 - HANDLE SHOOTOUTS / PENALTIES
 # ============================================================
@@ -2048,9 +2133,10 @@ for i in range(1, max_date_id + 1):
     working_df['game_days_ago'] = i - working_df['grouped_date_id']
     working_df['date_weight']   = 1 - (working_df['game_days_ago'] / window_game_days)
     # UCL boost: cross-league games carry rare-but-informative signal.
-    # Knockout-stage games (Feb-June) get an even bigger boost.
-    ucl_mask     = working_df['competition'] == 'Champions League'
-    is_knockout  = working_df['date'].dt.month.isin(UCL_KNOCKOUT_MONTHS)
+    # Knockout games (R16+) get an even bigger boost; identification is via
+    # bracket walk so it handles COVID 2019-20 Lisbon and 2024-25+ playoff round.
+    ucl_mask    = working_df['competition'] == 'Champions League'
+    is_knockout = working_df['is_ucl_knockout'].fillna(False)
     working_df.loc[ucl_mask & ~is_knockout, 'date_weight'] *= UCL_GROUP_WEIGHT
     working_df.loc[ucl_mask &  is_knockout, 'date_weight'] *= UCL_KNOCKOUT_WEIGHT
 
