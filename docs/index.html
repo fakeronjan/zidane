@@ -1231,12 +1231,13 @@ function renderLeagueHistory(league) {
   // cups (CL/EL) don't map to a Standings filter - leave it blank so
   // seasonLinkClick preserves Standings' own pill state.
   const targetLg = isCup ? '' : league;
+  updateDisruptedNote('champions-disrupted-note', entries.map(e => e.season));
   const rows = entries.map(e => {
     const divCell = isCup && e.final_score
       ? `<td class="divider-col" style="text-align:center;font-size:11px;font-weight:600;white-space:nowrap;width:52px;padding:0 4px">${e.final_score}</td>`
       : `<td class="divider-col"></td>`;
     return `<tr>
-      <td class="season-cell linked" data-season-link="${e.season}" data-target-league="${targetLg}">${e.season}</td>
+      <td class="season-cell linked" data-season-link="${e.season}" data-target-league="${targetLg}">${e.season}${seasonTag(e.season)}</td>
       ${teamCell(e.champion,  'col-champ', e.season)}
       ${divCell}
       ${teamCell(e.runner_up, 'col-ru', e.season)}
