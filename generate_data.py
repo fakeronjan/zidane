@@ -92,7 +92,13 @@ _season_override = {}  # (team, date_str) -> correct season
 for _, _row in _euro.iterrows():
     _ds = str(_row['date'].date())
     _cs = _row['comp_season'].strip()
-    if date_to_season(_row['date'].date()) != _cs:
+    _derived = date_to_season(_row['date'].date())
+    # Only override when the date-derived season is AFTER comp_season -- i.e.
+    # the COVID bubble case where 2019-20 CL games carried into Aug 2020. NOT
+    # the inverse (e.g. July CL qualifying rounds for the NEXT season, which
+    # would wrongly re-season a defending champion's EOS snapshot -- bit
+    # Liverpool 2004-05).
+    if _derived > _cs:
         for _t in [_row['home_team'], _row['away_team']]:
             _season_override[(_t, _ds)] = _cs
 
