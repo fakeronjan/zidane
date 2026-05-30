@@ -32,6 +32,17 @@ shootout_margin = 0.5    # margin assigned to a penalty shootout win
 home_field_adv  = 0.5    # same as MESSI / OLANDIS
 min_games       = 15     # minimum games in rolling window to appear in final output
 
+# Tournament weight multipliers (applied to date_weight at solver time).
+# UCL is the only cross-league signal so it gets a boost; UEL/UECL stay 1.0x.
+# Knockout games (Feb-June, R16 onward) carry even more signal -- these are
+# the highest-stakes inter-league matchups. Fleet consistency: MESSI
+# continental = 1.5x, FORSBERG Olympics/WCoH = 1.5x.
+UCL_GROUP_WEIGHT     = 1.5    # UCL group / league phase
+UCL_KNOCKOUT_WEIGHT  = 2.0    # UCL knockout rounds (R16+)
+# Heuristic for knockout: Feb-June matches across all eras (R16 starts Feb,
+# final in late May / early June).
+UCL_KNOCKOUT_MONTHS  = {2, 3, 4, 5, 6}
+
 # WLS: weights affect observation influence, not margin magnitude.
 # Margin transform (cap=4) + per-game HCA are applied upstream in the
 # data-prep step — solver just takes the pre-prepped adj_margin_home as input.
@@ -2036,6 +2047,12 @@ for i in range(1, max_date_id + 1):
 
     working_df['game_days_ago'] = i - working_df['grouped_date_id']
     working_df['date_weight']   = 1 - (working_df['game_days_ago'] / window_game_days)
+    # UCL boost: cross-league games carry rare-but-informative signal.
+    # Knockout-stage games (Feb-June) get an even bigger boost.
+    ucl_mask     = working_df['competition'] == 'Champions League'
+    is_knockout  = working_df['date'].dt.month.isin(UCL_KNOCKOUT_MONTHS)
+    working_df.loc[ucl_mask & ~is_knockout, 'date_weight'] *= UCL_GROUP_WEIGHT
+    working_df.loc[ucl_mask &  is_knockout, 'date_weight'] *= UCL_KNOCKOUT_WEIGHT
 
     # Drop zero-margin rows (regulation draws — non-zero shootout-decided
     # 0-0 games have ±shootout_margin and stay in) to match prior rankit

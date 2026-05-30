@@ -233,13 +233,13 @@ with open('docs/data/current_standings.json', 'w') as f:
 # Warm-up exclusion (1992-93 → 1994-95) still applies — the rolling Massey
 # window isn't fully populated in those seasons.
 GOAT_WARMUP_SEASONS = {'1992-93', '1993-94', '1994-95'}
-# CL/EL data via openfootball doesn't reliably cover pre-2011-12. Without
-# UCL games in the rolling window, pre-2011 domestic-only ratings can't
-# be calibrated against European elites — a Bordeaux 1998-99 type season
-# (won Ligue 1, never played UCL elite teams in our data) ends up looking
-# artificially strong vs Pep's 2008-09 Barcelona (whose UCL dominance
-# isn't in our data). Restrict GOAT to the calibrated window.
-GOAT_FIRST_SEASON = '2011-12'
+# EL/UEFA Cup data coverage starts partial in 2004-05 and is full from
+# 2009-10 onward. Without EL games connecting CL non-participants, pre-2004
+# regression has weak cross-league constraints and certain leagues inflate
+# (Bordeaux 1998-99 = 2.614 vs Pep Barça 2010-11 = 1.98). The 2004-05
+# cutoff threads the needle: surfaces Pep's Barça (2008-12) and ManUtd
+# 2007-08 dynasty seasons while excluding the worst pre-EL cluster noise.
+GOAT_FIRST_SEASON = '2004-05'
 print("Writing goat_teams.json...")
 eos = df[df['is_end_of_season'] == 1].copy()
 eos = eos[~eos['season'].isin(GOAT_WARMUP_SEASONS)]
