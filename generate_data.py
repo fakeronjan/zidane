@@ -271,7 +271,7 @@ final_record_lookup = {
 # overkill for one season's complexity).
 SHORT_SEASONS = {
     '2019-20': {
-        'tag': 'COVID disrupted',
+        'tag': 'COVID',
         'category': 'covid',
         'note': "COVID disrupted the 2019-20 European season. Premier League / La Liga / Serie A / Bundesliga finished their seasons behind closed doors (May-August 2020). Ligue 1 was the only major league to cancel outright -- only 27 of 38 matches played, PSG declared champion on points-per-game. UCL/UEL knockouts moved to single-site bubbles in Lisbon/Cologne in August.",
     },
