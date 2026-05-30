@@ -27,7 +27,7 @@ if os.path.exists(_env_path):
 # ============================================================
 
 window_game_days = 200   # rolling window in game days (not calendar days)
-margin_cap      = 4      # max goal margin fed into Massey
+margin_cap      = 4      # max goal margin fed into fakeronjan WLS
 shootout_margin = 0.5    # margin assigned to a penalty shootout win
 home_field_adv  = 0.5    # same as MESSI / OLANDIS
 min_games       = 15     # minimum games in rolling window to appear in final output
@@ -111,9 +111,9 @@ DOMESTIC_CUPS = [
 _today = date.today()
 _cur_start = _today.year if _today.month >= 8 else _today.year - 1
 
-def _solve_massey(window_df, weighting_mode):
+def _solve_wls(window_df, weighting_mode):
     """
-    Homebrew weighted-least-squares Massey solver. Replaces rankit.
+    Homebrew weighted-least-squares fakeronjan WLS solver. Replaces rankit.
 
     Takes a window df with home_team, away_team, adj_margin_home (the
     HCA + cap pre-applied margin from home perspective), and date_weight.
@@ -1438,7 +1438,7 @@ def load_uefacup_historical(season):
 #   Penalties        →  "...  4-1 pen. 1-1 a.e.t."          → match score=1-1, winner by pen
 #
 # Two-legged knockout ties: each leg is a separate line, treated as
-# an independent game. Aggregate score is irrelevant for Massey.
+# an independent game. Aggregate score is irrelevant for fakeronjan WLS.
 
 _MONTH_MAP = {
     'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4,  'May': 5,  'Jun': 6,
@@ -2026,7 +2026,7 @@ lastmatch_df = pd.concat([lastmatch_home, lastmatch_away]).reset_index(drop=True
 lastmatch_df['date'] = pd.to_datetime(lastmatch_df['date']).dt.date
 
 # ============================================================
-# STEP 10 - ROLLING MASSEY RATINGS (ZIDANE RATINGS)
+# STEP 10 - ROLLING FAKERONJAN WLS RATINGS (ZIDANE RATINGS)
 # ============================================================
 # One snapshot per game-day, rolling 200-game-day window,
 # linear recency weighting by game days (not calendar days).
@@ -2044,7 +2044,7 @@ print("Starting ZIDANE rating calculations...")
 # We drop the team's promotion/relegation history — what matters is whether
 # the team was a Big-5 league member during the season the game took place.
 #
-# Massey then runs ONLY on games where BOTH teams are Big 5 in the game's
+# fakeronjan WLS then runs ONLY on games where BOTH teams are Big 5 in the game's
 # season. CL/EL group games between Big-5 sides survive; qualifying-round
 # matches against minnows (Maltese, Faroese, etc.) are dropped. Domestic
 # cup matches against lower-division teams are dropped. Big-5-vs-Big-5
@@ -2155,7 +2155,7 @@ for i in range(1, max_date_id + 1):
         last_printed_ym = current_ym
 
     try:
-        ranked = _solve_massey(working_df, WEIGHTING_MODE)
+        ranked = _solve_wls(working_df, WEIGHTING_MODE)
 
         if ranked['rating'].isna().any() or np.isinf(ranked['rating']).any():
             continue
@@ -2595,7 +2595,7 @@ final_df.drop_duplicates(keep='first', inplace=True)
 final_df = final_df[final_df['games_played'] >= min_games]
 
 # Renumber ranks contiguously within each snapshot after filtering.
-# (Massey input is now restricted to Big-5-vs-Big-5 games, so the network
+# (fakeronjan WLS input is now restricted to Big-5-vs-Big-5 games, so the network
 # is naturally 0-centered around the Big-5 mean by construction — no
 # post-hoc re-centering needed.)
 final_df['rank'] = (

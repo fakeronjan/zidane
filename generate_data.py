@@ -236,7 +236,7 @@ with open('docs/data/current_standings.json', 'w') as f:
 # of its mid-table teams' ratings inflated together. A "championship gate"
 # keeps only the seasons that produced a real trophy lift.
 #
-# Warm-up exclusion (1992-93 → 1994-95) still applies — the rolling Massey
+# Warm-up exclusion (1992-93 → 1994-95) still applies — the rolling fakeronjan WLS
 # window isn't fully populated in those seasons.
 GOAT_WARMUP_SEASONS = {'1992-93', '1993-94', '1994-95'}
 # EL/UEFA Cup data coverage starts partial in 2004-05 and is full from
