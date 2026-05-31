@@ -1646,6 +1646,11 @@ def load_european_from_fda(season, competition_label, fda_code):
             ph, pa = pens.get('home'), pens.get('away')
             if ph is not None and pa is not None:
                 shootout_winner = home if ph > pa else away
+                # FDA bug/quirk: in PSO matches, the `fullTime` score includes
+                # the shootout kicks (e.g. 1-1 (4-3 pens) reports as 5-4 FT).
+                # Subtract the pens to recover the post-ET, pre-shootout score.
+                gh = int(gh) - ph
+                ga = int(ga) - pa
         rows.append({
             'date':            m['utcDate'][:10],
             'home_team':       home,
