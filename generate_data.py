@@ -18,21 +18,44 @@ df = pd.read_csv('zidane_ratings_final.csv')
 df['date'] = pd.to_datetime(df['date']).dt.date
 df['last_match_date'] = pd.to_datetime(df['last_match_date'], errors='coerce').dt.date
 
-# COVID 2019-20: Copa del Rey final was deferred 10 months to 2021-04-03.
-# Every other season since 2010-11 wrapped by June 10 (2023 CL final, Istanbul).
+# COVID 2019-20: Copa del Rey final was deferred 10 months to 2021-04-03 —
+# the CL Final (Aug 23, 2020) was NOT the last game of that season. This is
+# the lone exception to the "CL Final closes the European club season" rule.
 SEASON_COMPLETE_OVERRIDES = {
     '2019-20': date(2021, 5, 1),
 }
 
+
+# Build CL-Final-date-per-season lookup directly from the games CSV. This
+# anchors the season-complete gate to the actual game date, so the badge
+# logic adapts automatically to schedule drift (Qatar WC 2022-23 pushed the
+# final to June 10; 2024+ has settled back to late May).
+def _season_from_date(d):
+    return f"{d.year}-{str(d.year+1)[-2:]}" if d.month >= 8 else f"{d.year-1}-{str(d.year)[-2:]}"
+
+_cl_games_for_dates = pd.read_csv(
+    'all_club_games.csv', parse_dates=['date'], usecols=['date', 'competition'])
+_cl_games_for_dates = _cl_games_for_dates[
+    _cl_games_for_dates['competition'] == 'Champions League'
+].dropna(subset=['date']).copy()
+_cl_games_for_dates['season'] = _cl_games_for_dates['date'].apply(_season_from_date)
+_cl_final_date_by_season = (
+    _cl_games_for_dates.groupby('season')['date'].max().dt.date.to_dict()
+)
+
+
 def season_is_complete(season_str):
-    """Season YYYY-YY is complete once today is past June 12 of its end year.
-    2-day cushion over the latest observed non-COVID final. 2019-20 has an
-    explicit override for the COVID-deferred Copa del Rey final."""
-    start_year = int(season_str[:4])
-    end_year   = start_year + 1
+    """Season is complete once today is past that season's CL Final game date.
+    CL Final is the last game of the European club calendar every year
+    except 2019-20 (COVID-deferred Copa del Rey, handled via override).
+    Returns False if no CL Final date is known — current in-progress seasons
+    where the Final hasn't been played yet, or future seasons not in data."""
     if season_str in SEASON_COMPLETE_OVERRIDES:
         return date.today() > SEASON_COMPLETE_OVERRIDES[season_str]
-    return date.today() > date(end_year, 6, 12)
+    cl_final = _cl_final_date_by_season.get(season_str)
+    if cl_final is None:
+        return False
+    return date.today() > cl_final
 
 # Fix finish labels for any in-progress seasons still in the cached CSV.
 # zidane.py now handles this correctly on a fresh run; this patch covers
