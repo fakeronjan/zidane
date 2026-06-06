@@ -44,7 +44,7 @@ UCL_KNOCKOUT_WEIGHT  = 2.0    # UCL knockout rounds (R16+, playoff round in new 
 
 # WLS: weights affect observation influence, not margin magnitude.
 # Margin transform (cap=4) + per-game HCA are applied upstream in the
-# data-prep step — solver just takes the pre-prepped adj_margin_home as input.
+# data-prep step - solver just takes the pre-prepped adj_margin_home as input.
 WEIGHTING_MODE = "wls"
 
 # Re-process the most recent N ranking_ids (game-days) on every run so late-
@@ -91,20 +91,20 @@ FIRST_SEASON_YEAR       = 1992   # 1992-93: EPL rebrand + CL rebrand
 
 # Domestic cup data sources (Phase 3). Each cup uses the most reliable source
 # for each era. Wikipedia gap-fill for the historical pre-openfootball window
-# is loaded from a separate static CSV (cups_historical.csv) — see
+# is loaded from a separate static CSV (cups_historical.csv) - see
 # scrape_domestic_cups.py.
 OPENFOOTBALL_COUNTRY_BASE = 'https://raw.githubusercontent.com/openfootball'
 
 # (cup_name, country_repo, filename, first_openfootball_season)
 # first_openfootball_season is the earliest year openfootball *actually*
-# has cup.txt for that country — anything earlier is loaded from
+# has cup.txt for that country - anything earlier is loaded from
 # cups_historical.csv (Wikipedia scrape) instead.
 DOMESTIC_CUPS = [
     ('FA Cup',          'england',     'facup.txt',     2018),  # engsoccerdata covers pre-2018
     ('DFB-Pokal',       'deutschland', 'cup.txt',       2018),  # openfootball cup.txt only 2018-19+
     ('Copa del Rey',    'espana',      'cup.txt',       2020),  # openfootball cup.txt only 2020-21+
     ('Coppa Italia',    'italy',       'cup.txt',       2020),  # openfootball cup.txt only 2020-21+
-    # Coupe de France: no openfootball data — pure Wikipedia scrape, see Phase 3b
+    # Coupe de France: no openfootball data - pure Wikipedia scrape, see Phase 3b
 ]
 
 # Dynamically compute the current season
@@ -260,7 +260,7 @@ ALL_SEASONS = [make_season(y) for y in range(FIRST_SEASON_YEAR, _cur_start + 1)]
 
 TEAM_NAME_MAP = {
     # ====================================================================
-    # ENGLAND — football-data.co.uk uses short names; canonical = full FC
+    # ENGLAND - football-data.co.uk uses short names; canonical = full FC
     # ====================================================================
     'Arsenal':                          'Arsenal FC',
     'Aston Villa':                      'Aston Villa FC',
@@ -311,7 +311,7 @@ TEAM_NAME_MAP = {
     'Wolverhampton Wanderers':          'Wolverhampton Wanderers FC',
 
     # ====================================================================
-    # SPAIN — fdco uses English abbreviations; canonical = full Spanish name
+    # SPAIN - fdco uses English abbreviations; canonical = full Spanish name
     # ====================================================================
     'Alaves':                           'Deportivo Alavés',
     'CD Alavés':                        'Deportivo Alavés',
@@ -358,7 +358,7 @@ TEAM_NAME_MAP = {
     'Zaragoza':                         'Real Zaragoza',
 
     # ====================================================================
-    # GERMANY — fdco uses German short names
+    # GERMANY - fdco uses German short names
     # ====================================================================
     'Augsburg':                         'FC Augsburg',
     'Bayern Munich':                    'FC Bayern München',
@@ -396,7 +396,7 @@ TEAM_NAME_MAP = {
     'Wolfsburg':                        'VfL Wolfsburg',
 
     # ====================================================================
-    # ITALY — fdco uses short/common names
+    # ITALY - fdco uses short/common names
     # ====================================================================
     'Atalanta':                         'Atalanta BC',
     'Bologna':                          'Bologna FC 1909',
@@ -438,7 +438,7 @@ TEAM_NAME_MAP = {
     'Udinese':                          'Udinese Calcio',
 
     # ====================================================================
-    # FRANCE — fdco uses short names
+    # FRANCE - fdco uses short names
     # ====================================================================
     'Ajaccio':                          'AC Ajaccio',
     'Amiens':                           'Amiens SC',
@@ -483,7 +483,7 @@ TEAM_NAME_MAP = {
     'Valenciennes':                     'Valenciennes FC',
 
     # ====================================================================
-    # EUROPEAN (non-top-5, appear in CL/EL — cross-league calibration)
+    # EUROPEAN (non-top-5, appear in CL/EL - cross-league calibration)
     # ====================================================================
     'Crvena Zvezda':                    'FK Crvena Zvezda',
     'Dinamo Zagreb':                    'GNK Dinamo Zagreb',
@@ -502,7 +502,7 @@ TEAM_NAME_MAP = {
     'Union Saint-Gilloise':             'Royale Union Saint-Gilloise',
 
     # ====================================================================
-    # HISTORICAL — engsoccerdata name variants (1992-93 → 2010-11)
+    # HISTORICAL - engsoccerdata name variants (1992-93 → 2010-11)
     # Map any engsoccerdata variant to the same canonical used post-2011 so
     # teams that span both eras don't appear as duplicates in standings/output.
     # Defunct top-flight teams get a canonical name in the prevailing local
@@ -582,7 +582,7 @@ TEAM_NAME_MAP = {
     'Stade Brest':                      'Stade Brestois 29',
     'Stade Rennes':                     'Stade Rennais FC 1901',
 
-    # Champions League — engsoccerdata variants
+    # Champions League - engsoccerdata variants
     'AFC Ajax':                         'AFC Ajax',
     'Bayern Munich':                    'FC Bayern München',
     'Crvena Zvezda':                    'FK Crvena Zvezda',
@@ -615,7 +615,7 @@ TEAM_NAME_MAP = {
     'sc Heerenveen':                    'sc Heerenveen',
 
     # ====================================================================
-    # WIKIPEDIA — UEFA Cup / Europa League name variants (Phase 2 backfill)
+    # WIKIPEDIA - UEFA Cup / Europa League name variants (Phase 2 backfill)
     # Wikipedia generally uses common short names ("Ajax", "Benfica") rather
     # than the full club name. These map to the same canonical we use
     # everywhere else so teams aren't double-counted.
@@ -1155,7 +1155,7 @@ def load_domestic_fdco(season):
 # jalapic/engsoccerdata provides clean CSVs for the 5 domestic leagues
 # (1888-2024 for England, similar coverage for others) and Champions League /
 # European Cup (1955-2017). We use it for the 1992-93 -> 2010-11 backfill
-# window only — the existing fdco + openfootball pipeline takes over from
+# window only - the existing fdco + openfootball pipeline takes over from
 # 2011-12 onward.
 #
 # Season convention: row Season=N denotes the N -> N+1 campaign.
@@ -1311,7 +1311,7 @@ def load_facup_engsoccerdata(season):
 # ============================================================
 # Phase 3b backfill: scrape_domestic_cups.py produces a static CSV of
 # DFB-Pokal / Copa del Rey / Coppa Italia matches for the historical era
-# before openfootball took over. Coverage is uneven by year — older
+# before openfootball took over. Coverage is uneven by year - older
 # Wikipedia pages use a non-fevent format we can't fully parse, but the
 # finals are always captured (which is what champion / treble detection
 # needs). Where we have full rounds, those add rating signal too.
@@ -1325,7 +1325,7 @@ def _load_cups_historical():
     try:
         _cups_historical_df = pd.read_csv('cups_historical.csv')
     except FileNotFoundError:
-        print("  Warning: cups_historical.csv not found — skipping cup backfill")
+        print("  Warning: cups_historical.csv not found - skipping cup backfill")
         _cups_historical_df = pd.DataFrame()
     return _cups_historical_df
 
@@ -1373,7 +1373,7 @@ def load_cup_historical(season, cup):
 #
 # The CSV schema mirrors champs.csv: date, home, visitor, FT, hgoal, vgoal,
 # comp_season, shootout_winner. We label everything as 'Europa League' even
-# for the pre-2009 UEFA Cup era — they're a single continuous competition
+# for the pre-2009 UEFA Cup era - they're a single continuous competition
 # lineage and the front-end only knows EL/CL/Conference League.
 
 _uefacup_historical_df = None
@@ -1385,7 +1385,7 @@ def _load_uefacup_historical():
     try:
         _uefacup_historical_df = pd.read_csv('uefacup_historical.csv')
     except FileNotFoundError:
-        print("  Warning: uefacup_historical.csv not found — skipping UEFA Cup backfill")
+        print("  Warning: uefacup_historical.csv not found - skipping UEFA Cup backfill")
         _uefacup_historical_df = pd.DataFrame()
     return _uefacup_historical_df
 
@@ -1447,7 +1447,7 @@ _MONTH_MAP = {
 
 # Date line: optional day-of-week, then Mon/DD, optional year.
 # Some openfootball country-cup files wrap the date in square brackets like
-# "[Tue Sep/22]" — the regex tolerates either form.
+# "[Tue Sep/22]" - the regex tolerates either form.
 _RE_DATE = re.compile(
     r'^\s*\[?\s*(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+([A-Za-z]+)/(\d{1,2})(?:\s+(\d{4}))?\s*\]?'
 )
@@ -1502,7 +1502,7 @@ _RE_OLDCUP_MATCH = re.compile(
 # Wikipedia loader. Used for current-season Europa League and Conference League
 # because openfootball dropped el.txt and conf.txt starting 2025-26 and FDA's
 # free tier doesn't cover those competitions. Same row-dict shape as
-# parse_european_txt — drop-in replacement.
+# parse_european_txt - drop-in replacement.
 WIKI_BASE = 'https://en.wikipedia.org'
 WIKI_UA = 'zidane-data-collection/1.0 (https://github.com/fakeronjan/zidane; current-season UEFA backfill)'
 _WIKI_SCORE_RE = re.compile(r'(\d+)\s*[–\-]\s*(\d+)')
@@ -1588,7 +1588,7 @@ def load_european_from_wikipedia(season, competition_label, wiki_token):
             row = _wiki_parse_footballbox(box, competition_label, season)
             if row:
                 all_rows.append(row)
-    # Defensive dedupe — knockout legs are home/away separate so legitimate
+    # Defensive dedupe - knockout legs are home/away separate so legitimate
     # rematches differ on (home, away) order.
     seen = set()
     out = []
@@ -1609,7 +1609,7 @@ FDA_BASE = 'https://api.football-data.org/v4'
 
 def load_european_from_fda(season, competition_label, fda_code):
     """Pull a full season of European competition matches from football-data.org.
-    Returns None if the API key is missing or the request fails — caller should
+    Returns None if the API key is missing or the request fails - caller should
     fall back to parse_european_txt in that case."""
     api_key = os.environ.get('FOOTBALL_DATA_KEY')
     if not api_key:
@@ -1706,7 +1706,7 @@ def parse_european_txt(season, competition, filename, repo_base=None):
             month_str, day_str, year_str = dm.group(1), dm.group(2), dm.group(3)
             month_num = _MONTH_MAP.get(month_str)
             if year_str:
-                # Explicit year on the line — trust it, don't apply month-wrap.
+                # Explicit year on the line - trust it, don't apply month-wrap.
                 current_year = int(year_str)
             elif month_num and current_year and last_month is not None:
                 # No explicit year. Detect month wrap (Dec -> Jan) and bump.
@@ -1885,7 +1885,7 @@ for season in ALL_SEASONS:
     # Domestic cups (Phase 3b): Wikipedia historical backfill for the gap
     # before openfootball coverage starts. cups_historical.csv only contains
     # rows for the relevant pre-openfootball years per cup, so we can call
-    # for any season — empty-result calls are cheap (single dataframe filter).
+    # for any season - empty-result calls are cheap (single dataframe filter).
     for cup_name, _, _, first_of in DOMESTIC_CUPS:
         if cup_name == 'FA Cup':
             continue  # FA Cup history is fully covered by engsoccerdata
@@ -1900,13 +1900,13 @@ df.reset_index(drop=True, inplace=True)
 # Warn on any games with unexpected nulls
 null_scores = df[df['home_score'].isna() | df['away_score'].isna()]
 if len(null_scores):
-    print(f"  WARNING: {len(null_scores)} rows with missing scores — check loaders")
+    print(f"  WARNING: {len(null_scores)} rows with missing scores - check loaders")
 
 # Treat the committed games file as the persistent database: a run may ADD new
 # games or CORRECT existing ones, but must never DELETE games we already have
 # just because this run's live fetch came back short. ZIDANE reassembles the
 # full history every run from mixed sources (openfootball, Wikipedia, FDA), and
-# Wikipedia/FDA responses are not perfectly stable — a missed scrape would
+# Wikipedia/FDA responses are not perfectly stable - a missed scrape would
 # otherwise erase real history and desync the positional-id ratings cache.
 # Fresh rows win for games present in both (so late-arriving scores land);
 # DB-only games are preserved.
@@ -1922,7 +1922,7 @@ if os.path.exists('all_club_games.csv'):
     _preserved = sum(1 for k in map(tuple, _prev[_key].astype(str).values) if k not in _fresh_keys)
     if _preserved:
         print(f"[db-union] preserved {_preserved:,} games already in the database "
-              f"that this run's fetch did not return (flaky source — not deleting history)")
+              f"that this run's fetch did not return (flaky source - not deleting history)")
     df = (_combined.drop(columns=['_src_priority'])
                    .sort_values('date').reset_index(drop=True))
 
@@ -2036,7 +2036,7 @@ lastmatch_df['date'] = pd.to_datetime(lastmatch_df['date']).dt.date
 # One snapshot per game-day, rolling 200-game-day window,
 # linear recency weighting by game days (not calendar days).
 # Breaks and international windows do not count against recency.
-# No tournament weights — all club games are competitive by definition.
+# No tournament weights - all club games are competitive by definition.
 # Incremental: skips date IDs already in zidane_ratings.csv.gz.
 # Stored gzipped because the uncompressed file exceeds GitHub's 100MB
 # per-file limit once the historical backfill is included.
@@ -2046,7 +2046,7 @@ print("Starting ZIDANE rating calculations...")
 # ── Big-5 game filter ──────────────────────────────────────────────────────────
 # A team is "Big 5" for a given season if they appeared in any of the 5 top
 # domestic leagues that season (EPL, La Liga, Bundesliga, Serie A, Ligue 1).
-# We drop the team's promotion/relegation history — what matters is whether
+# We drop the team's promotion/relegation history - what matters is whether
 # the team was a Big-5 league member during the season the game took place.
 #
 # fakeronjan WLS then runs ONLY on games where BOTH teams are Big 5 in the game's
@@ -2078,12 +2078,12 @@ try:
     zidane_df = pd.read_csv('zidane_ratings.csv.gz')
 except FileNotFoundError:
     zidane_df = None
-    print("No existing ratings — running full history from scratch.")
+    print("No existing ratings - running full history from scratch.")
 
 # Cache-validity guard: ranking_id is positional (groupby('date').ngroup()+1),
 # so when the scraped game-date set changes size (e.g. a historical date drops
 # out), every later date's id shifts and the cache silently desyncs from real
-# dates — the skip logic then stops emitting new game-days and ratings freeze.
+# dates - the skip logic then stops emitting new game-days and ratings freeze.
 # Verify the cached id->date mapping still matches current games; on any
 # mismatch, discard the cache and rebuild from scratch.
 if zidane_df is not None:
@@ -2097,7 +2097,7 @@ if zidane_df is not None:
                      if cur_id_date.get(rid) != d)
     if mismatches:
         print(f"  cache desynced from current game dates "
-              f"({mismatches:,} ranking_id<->date mismatches) — full rebuild from scratch")
+              f"({mismatches:,} ranking_id<->date mismatches) - full rebuild from scratch")
         zidane_df = None
 
 if zidane_df is None:
@@ -2145,7 +2145,7 @@ for i in range(1, max_date_id + 1):
     working_df.loc[ucl_mask & ~is_knockout, 'date_weight'] *= UCL_GROUP_WEIGHT
     working_df.loc[ucl_mask &  is_knockout, 'date_weight'] *= UCL_KNOCKOUT_WEIGHT
 
-    # Drop zero-margin rows (regulation draws — non-zero shootout-decided
+    # Drop zero-margin rows (regulation draws - non-zero shootout-decided
     # 0-0 games have ±shootout_margin and stay in) to match prior rankit
     # behavior. The solver doesn't fail on zero rows, but matching the
     # prior filter keeps the solve equivalent to the pre-port pipeline.
@@ -2249,7 +2249,7 @@ print(f"zidane_standings.csv saved! ({len(standings_df)} rows)")
 
 print("Detecting competition finishes...")
 
-# COVID 2019-20: Copa del Rey final was deferred 10 months to 2021-04-03 —
+# COVID 2019-20: Copa del Rey final was deferred 10 months to 2021-04-03 -
 # the lone case where the CL Final wasn't the last game of the European
 # club season. Every other year (post-1999 format), the CL Final closes
 # the calendar, so we anchor the season-complete gate to its actual game
@@ -2270,7 +2270,7 @@ _cl_final_date_by_comp_season = (
 
 def season_is_complete(season_str):
     """Season is complete once today is past its CL Final game date.
-    Falls back to False (not complete) if no CL Final date is known —
+    Falls back to False (not complete) if no CL Final date is known -
     in-progress current season, future seasons, or anomaly cases."""
     if season_str in SEASON_COMPLETE_OVERRIDES:
         return date.today() > SEASON_COMPLETE_OVERRIDES[season_str]
@@ -2304,7 +2304,7 @@ for (season, competition), group in dom_std.groupby(['season', 'competition']):
 # computed date season. This fixes the 2019-20 Lisbon/Frankfurt bubble:
 # those finals were played in August 2020, which date_to_season labels
 # "2020-21", but they belong to the 2019-20 competition season.
-# Skip any comp_season that is not yet complete — no champion until the
+# Skip any comp_season that is not yet complete - no champion until the
 # final has been played.
 for competition, records, col in [
     ('Champions League', cl_records, 'cl_finish'),
@@ -2407,7 +2407,7 @@ if not cup_finish_df.empty:
 else:
     cup_simple_df = pd.DataFrame(columns=['season', 'team', 'domestic_cup_finish'])
 
-# Validation print — spot check before merging
+# Validation print - spot check before merging
 print(f"\n  {'Season':<10} {'Domestic Champions'}")
 print(f"  {'-'*55}")
 for _, row in domestic_finish_df[domestic_finish_df['domestic_finish'] == 'Champion'].sort_values('season').iterrows():
@@ -2432,7 +2432,7 @@ if not cup_finish_df.empty:
         names = []
         for cup in DOMESTIC_CUP_NAMES:
             r = cup_finish_df[(cup_finish_df['season']==season) & (cup_finish_df['cup']==cup) & (cup_finish_df['cup_finish']=='Champion')]
-            names.append(r['team'].values[0] if len(r) else '—')
+            names.append(r['team'].values[0] if len(r) else '-')
         print(f"  {season:<10} {names[0]:<26} {names[1]:<26} {names[2]:<28} {names[3]}")
 
 # ============================================================
@@ -2466,7 +2466,7 @@ final_df = pd.merge(final_df, league_lookup, on='name', how='left')
 final_df['league'] = final_df['league'].fillna('European/Other')
 
 # Last match string via merge_asof. Forward-fills the most recent result
-# WITHIN the same team's same season — at the start of a new season, teams
+# WITHIN the same team's same season - at the start of a new season, teams
 # that haven't played yet correctly show empty rather than their previous-
 # season finals/cup match. Achieved by including season in the merge `by`.
 lastmatch_df_sorted = lastmatch_df.copy()
@@ -2491,12 +2491,12 @@ final_df['is_game_day'] = np.where(final_df['date'] == final_df['last_match_date
 
 final_df.rename(columns={'name': 'team'}, inplace=True)
 
-# Finish-flag merges happen AFTER the season-patch step below — otherwise
+# Finish-flag merges happen AFTER the season-patch step below - otherwise
 # the COVID-bubble Aug-2020 CL final row keeps its date_to_season "2020-21"
 # label at merge time and gets no flags, even though it later gets patched
 # back to "2019-20". See "season_patch" block below.
 
-# is_cl_final_day — snapshot falls on the CL final date for that comp season.
+# is_cl_final_day - snapshot falls on the CL final date for that comp season.
 # Uses the actual game date (not computed season) to handle the 2019-20 bubble.
 cl_final_date_set = set(
     df[df['competition'] == 'Champions League']
@@ -2508,7 +2508,7 @@ cl_final_date_set = set(
 )
 final_df['is_cl_final_day'] = np.where(final_df['date'].isin(cl_final_date_set), 1, 0)
 
-# is_domestic_final_day — snapshot falls on the last day of that team's
+# is_domestic_final_day - snapshot falls on the last day of that team's
 # own domestic league for that season. Per-league, per-season.
 dom_final_dates = (
     dom_games.groupby(['competition', 'season'])['date']
@@ -2523,7 +2523,7 @@ final_df['is_domestic_final_day'] = np.where(
 )
 final_df.drop(columns=['dom_final_date'], inplace=True)
 
-# is_end_of_season — fires on the true end of each sport-season: the latest date
+# is_end_of_season - fires on the true end of each sport-season: the latest date
 # across domestic leagues AND CL/EL finals, where CL/EL is matched by comp_season
 # (not date_to_season). This correctly places the 2019-20 COVID bubble CL final
 # (August 23, 2020) in the "2019-20" season rather than "2020-21".
@@ -2560,8 +2560,8 @@ for patch_date, correct_season in season_patch.items():
 # Per-team end-of-season: flag each team's last actual game-day in
 # that sport-season, not the global sport-season EOS date. The old
 # global approach broke COVID 2019-20: it set EOS to Aug 23 (CL final)
-# for every team in that sport-season, so Liverpool — whose last EPL
-# game was July 26 — got a snapshot 28 days after they stopped playing.
+# for every team in that sport-season, so Liverpool - whose last EPL
+# game was July 26 - got a snapshot 28 days after they stopped playing.
 # Their rolling-window rating decayed during that dead period (other
 # teams' Lisbon UCL knockout games kept entering the window with full
 # recency weight while Liverpool's results stayed frozen), dropping
@@ -2581,7 +2581,7 @@ final_df = final_df.merge(team_last_gameday, on=['team', 'season'], how='left')
 final_df['is_end_of_season'] = (final_df['date'] == final_df['_team_eos_date']).astype(int)
 final_df = final_df.drop(columns=['_team_eos_date'])
 
-# Merge finish flags (post-season-patch — see comment above merge sites that
+# Merge finish flags (post-season-patch - see comment above merge sites that
 # used to live before this block). Doing it here ensures the bubble-final
 # rows get their correct season's flags applied.
 final_df = pd.merge(final_df, domestic_finish_df, on=['season', 'team'], how='left')
@@ -2607,13 +2607,13 @@ final_df = final_df[[
 final_df.sort_values(['ranking_id', 'rank'], inplace=True)
 final_df.drop_duplicates(keep='first', inplace=True)
 
-# Minimum games filter — drops relegated clubs with sparse history
+# Minimum games filter - drops relegated clubs with sparse history
 # and non-top-5 clubs appearing only via European competition
 final_df = final_df[final_df['games_played'] >= min_games]
 
 # Renumber ranks contiguously within each snapshot after filtering.
 # (fakeronjan WLS input is now restricted to Big-5-vs-Big-5 games, so the network
-# is naturally 0-centered around the Big-5 mean by construction — no
+# is naturally 0-centered around the Big-5 mean by construction - no
 # post-hoc re-centering needed.)
 final_df['rank'] = (
     final_df.groupby('ranking_id')['rating']
@@ -2633,10 +2633,10 @@ print(final_df[final_df['most_recent'] == 1][
 # ============================================================
 # SEASON-END TOP 5 REPORT
 # ============================================================
-# Last snapshot of each season — good for spot-checking responsiveness
+# Last snapshot of each season - good for spot-checking responsiveness
 
 print(f"\n{'='*65}")
-print("ZIDANE — Top 5 at end of each season")
+print("ZIDANE - Top 5 at end of each season")
 print(f"{'='*65}")
 
 season_end_ids = final_df.groupby('season')['ranking_id'].max()

@@ -3,7 +3,7 @@
 # ============================================================
 # One-time backfill of UEFA Cup / Europa League match data for
 # 2004-05 through 2019-20 from Wikipedia. Outputs a CSV that
-# zidane.py reads at runtime — no scraping happens on the daily
+# zidane.py reads at runtime - no scraping happens on the daily
 # cron, just a static lookup.
 #
 # Why 2004-05+: that's when Wikipedia transitioned to per-round
@@ -65,7 +65,7 @@ def discover_subpages(main_html, season_url):
     # and one of the round fragments.
     season_basename = season_url.split('/wiki/')[1].split('#')[0]  # e.g. 2004%E2%80%9305_UEFA_Cup
     season_decoded = unquote(season_basename).lower()
-    base_token = season_decoded  # full base — sub-pages prefix with this
+    base_token = season_decoded  # full base - sub-pages prefix with this
     found = set()
     for a in soup.find_all('a', href=True):
         href = a['href']
@@ -90,7 +90,7 @@ RE_SCORE = re.compile(r'(\d+)\s*[–\-]\s*(\d+)')
 
 # Penalty score follows the "Penalties" keyword somewhere in the fevent text,
 # e.g. "Penalties | Riera | Pandiani | ... | 1–3 | Kanouté | Dani Alves | ...".
-# Wikipedia's old "(X-Y p)" suffix style also exists in some pages — handle both.
+# Wikipedia's old "(X-Y p)" suffix style also exists in some pages - handle both.
 RE_PEN_AFTER_KEYWORD = re.compile(r'Penalties.*?(\d+)\s*[–\-]\s*(\d+)', re.IGNORECASE | re.DOTALL)
 RE_PEN_SUFFIX        = re.compile(r'(?:^|\s|\()(\d+)\s*[–\-]\s*(\d+)\s*(?:p|pen|pens)\b', re.IGNORECASE)
 
@@ -114,7 +114,7 @@ def parse_match(fe, dtstart_iso, season):
             if a.find_parent(class_='flagicon'):
                 continue
             return a.get_text(strip=True)
-        # No team link — fall back to text content of the name span,
+        # No team link - fall back to text content of the name span,
         # which strips out the flag image alt text reasonably well.
         text = scope.get_text(' ', strip=True)
         return text
@@ -133,7 +133,7 @@ def parse_match(fe, dtstart_iso, season):
     home_goals = int(m.group(1))
     away_goals = int(m.group(2))
 
-    # Detect penalties. Only meaningful when the FT/AET score is tied —
+    # Detect penalties. Only meaningful when the FT/AET score is tied -
     # otherwise the X-Y "1–3" embedded in player lists could be misread as
     # a penalty score.
     shootout_winner = None
@@ -176,7 +176,7 @@ def parse_page(html, season):
                 m = parse_match(n, pending_date, season)
                 if m:
                     rows.append(m)
-            # don't reset pending_date — Wikipedia sometimes lists
+            # don't reset pending_date - Wikipedia sometimes lists
             # multiple matches under one dtstart
     return rows
 

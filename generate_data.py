@@ -1,5 +1,5 @@
 """
-generate_data.py — reads zidane_ratings_final.csv and writes JSON files for the web frontend.
+generate_data.py - reads zidane_ratings_final.csv and writes JSON files for the web frontend.
 Run after zidane.py. Outputs to docs/data/.
 """
 
@@ -18,7 +18,7 @@ df = pd.read_csv('zidane_ratings_final.csv')
 df['date'] = pd.to_datetime(df['date']).dt.date
 df['last_match_date'] = pd.to_datetime(df['last_match_date'], errors='coerce').dt.date
 
-# COVID 2019-20: Copa del Rey final was deferred 10 months to 2021-04-03 —
+# COVID 2019-20: Copa del Rey final was deferred 10 months to 2021-04-03 -
 # the CL Final (Aug 23, 2020) was NOT the last game of that season. This is
 # the lone exception to the "CL Final closes the European club season" rule.
 SEASON_COMPLETE_OVERRIDES = {
@@ -48,7 +48,7 @@ def season_is_complete(season_str):
     """Season is complete once today is past that season's CL Final game date.
     CL Final is the last game of the European club calendar every year
     except 2019-20 (COVID-deferred Copa del Rey, handled via override).
-    Returns False if no CL Final date is known — current in-progress seasons
+    Returns False if no CL Final date is known - current in-progress seasons
     where the Final hasn't been played yet, or future seasons not in data."""
     if season_str in SEASON_COMPLETE_OVERRIDES:
         return date.today() > SEASON_COMPLETE_OVERRIDES[season_str]
@@ -254,12 +254,12 @@ with open('docs/data/current_standings.json', 'w') as f:
 # ── 2. GOAT table ─────────────────────────────────────────────────────────────
 # Eligibility: must win the domestic league OR the Champions League this
 # season. Domestic cup and Europa League do NOT qualify on their own. This
-# filters out cluster-inflation entries — pre-2004 in particular still has
+# filters out cluster-inflation entries - pre-2004 in particular still has
 # years where one Big-5 league had a coordinated strong CL run and several
 # of its mid-table teams' ratings inflated together. A "championship gate"
 # keeps only the seasons that produced a real trophy lift.
 #
-# Warm-up exclusion (1992-93 → 1994-95) still applies — the rolling fakeronjan WLS
+# Warm-up exclusion (1992-93 → 1994-95) still applies - the rolling fakeronjan WLS
 # window isn't fully populated in those seasons.
 GOAT_WARMUP_SEASONS = {'1992-93', '1993-94', '1994-95'}
 # EL/UEFA Cup data coverage starts partial in 2004-05 and is full from
@@ -276,7 +276,7 @@ eos = eos[eos['season'] >= GOAT_FIRST_SEASON]
 eos = eos[(eos['domestic_finish'] == 'Champion') | (eos['cl_finish'] == 'Champion')]
 eos = eos.sort_values('rating', ascending=False).head(50).reset_index(drop=True)
 
-# End-of-season domestic record per (team, season) — used by GOAT and the
+# End-of-season domestic record per (team, season) - used by GOAT and the
 # Champions table. Built once here so both can share the lookup.
 final_record_lookup = {
     (row['team'], row['season']): row['record']
@@ -332,7 +332,7 @@ game_days = df[
     | (df['is_cl_final_day'] == 1)
 ].copy()
 
-# CL participation per (team, season) — surfaced as `played_cl` per-row so the
+# CL participation per (team, season) - surfaced as `played_cl` per-row so the
 # Team Summary 'End of Champions League' filter can hide teams that didn't play
 # in CL that season (cl_finish is only populated for Champion/Runner-Up).
 _cl_games = games_raw[games_raw['competition'] == 'Champions League']
@@ -556,7 +556,7 @@ def euro_team_dict(team, season):
 
 champions = {}
 
-# Domestic leagues — rank by final points from game data
+# Domestic leagues - rank by final points from game data
 for league in sorted(DOMESTIC_LEAGUES):
     entries = []
     league_pts = dom_final_pts[dom_final_pts['competition'] == league]

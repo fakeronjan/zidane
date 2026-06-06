@@ -7,16 +7,16 @@
 #   - Copa del Rey    1992-93 → 2011-12  (20 seasons)
 #   - Coppa Italia    1992-93 → 2012-13  (21 seasons)
 #
-# Coupe de France is intentionally skipped — no famous treble candidates
+# Coupe de France is intentionally skipped - no famous treble candidates
 # from French clubs in this period (PSG never won the Champions League),
 # and the early-round amateur matches add little rating signal at high
 # scraping cost.
 #
 # Wikipedia uses two match formats interchangeably:
-#   1. <table class="fevent">   — modern style. Date may be in a paired
+#   1. <table class="fevent">   - modern style. Date may be in a paired
 #      <span class="dtstart">. If absent (older pages), walk back through
 #      preceding text to find a "DD Month YYYY" string near a round heading.
-#   2. <table class="vevent">   — alternate style (e.g., DFB-Pokal). Each
+#   2. <table class="vevent">   - alternate style (e.g., DFB-Pokal). Each
 #      match row has the date as plain text in the first TD.
 #
 # Output: cups_historical.csv with the same schema used elsewhere.
@@ -143,7 +143,7 @@ def parse_fevent_match(fe, season):
     if not date:
         return None
 
-    # Penalty detection — only meaningful on tied final scores
+    # Penalty detection - only meaningful on tied final scores
     shootout_winner = None
     if hg == ag:
         full_text = fe.get_text(' ', strip=True)
