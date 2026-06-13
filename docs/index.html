@@ -1082,8 +1082,8 @@ function renderTeamTable() {
       ? `${g.date}<div style="font-size:10px;color:#999;font-style:italic;line-height:1.2">${dateLabel}</div>`
       : g.date;
     return `<tr>
-    <td style="white-space:nowrap;color:#888;font-size:12px">${dateCell}</td>
     <td class="linked" data-season-link="${g.season}" data-target-league="${data.league || ''}" style="font-size:11px;color:#555;text-align:center">${g.season}${tsView !== 'single' ? seasonTag(g.season) : ''}</td>
+    <td style="white-space:nowrap;color:#888;font-size:12px">${dateCell}</td>
     <td class="last-match-cell">${renderLastMatch(g.last_match, g.season, !!g._isStale)}</td>
     <td style="font-variant-numeric:tabular-nums;white-space:nowrap">${fmtRecord(g.record)}</td>
     <td class="rank-cell">${g.rank}</td>
@@ -1097,7 +1097,7 @@ function renderTeamTable() {
   document.getElementById('team-table-wrap').innerHTML = `
     <table>
       <thead><tr>
-        <th>Date</th><th style="text-align:center">Season</th><th>Last Match</th>
+        <th style="text-align:center">Season</th><th>Date</th><th>Last Match</th>
         <th>LEAGUE W-D-L (Pts)</th>
         <th>OVR #</th><th class="col-hide-mobile">LG #</th>
         <th>Rating</th>
