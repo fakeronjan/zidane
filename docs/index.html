@@ -1350,8 +1350,8 @@ function renderGoat() {
     <td class="season-cell linked" data-season-link="${t.season}" data-target-league="${targetLg}" style="text-align:center;white-space:nowrap">${t.season}${seasonTag(t.season)}</td>
     ${teamTd}
     <td>${leagueBadge(t.league, t.domestic_finish)}</td>
-    <td>${ratingBar(t.rating, _bs2)}</td>
     <td style="font-variant-numeric:tabular-nums;white-space:nowrap" class="col-hide-mobile">${fmtRecord(t.record)}</td>
+    <td>${ratingBar(t.rating, _bs2)}</td>
     <td class="col-hide-mobile" style="font-size:11px">${finishBadge(t.domestic_finish, t.cl_finish, t.el_finish, t.league, t.domestic_cup_finish)}</td>
   </tr>`;
   }).join('');
@@ -1362,8 +1362,8 @@ function renderGoat() {
         <th style="text-align:center">All time rank</th>
         <th style="text-align:center">Season</th>
         <th>Team</th><th>League</th>
-        <th>Rating</th>
         <th class="col-hide-mobile">LG W-D-L (Pts)</th>
+        <th>Rating</th>
         <th class="col-hide-mobile">Honors</th>
       </tr></thead>
       <tbody>${rows}</tbody>
