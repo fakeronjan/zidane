@@ -5,3 +5,6 @@ __pycache__/
 .DS_Store
 zidane_ratings.csv
 .env
+
+# Engine-migration backup snapshots (never commit)
+*-bak
