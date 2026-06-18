@@ -45,7 +45,6 @@ UCL_KNOCKOUT_WEIGHT  = 2.0    # UCL knockout rounds (R16+, playoff round in new 
 # WLS: weights affect observation influence, not margin magnitude.
 # Margin transform (cap=4) + per-game HCA are applied upstream in the
 # data-prep step - solver just takes the pre-prepped adj_margin_home as input.
-WEIGHTING_MODE = "wls"
 
 # Re-process the most recent N ranking_ids (game-days) on every run so late-
 # arriving data is absorbed. Without this, the first cron after a game-day
@@ -111,7 +110,7 @@ DOMESTIC_CUPS = [
 _today = date.today()
 _cur_start = _today.year if _today.month >= 8 else _today.year - 1
 
-def _solve_wls(window_df, weighting_mode):
+def _solve_wls(window_df):
     """
     Homebrew weighted-least-squares fakeronjan WLS solver. Replaces rankit.
 
@@ -142,14 +141,8 @@ def _solve_wls(window_df, weighting_mode):
         X[i, team_idx[home_names[i]]] = 1.0
         X[i, team_idx[away_names[i]]] = -1.0
 
-    if weighting_mode == "wls":
-        y[:n_games] = adj_margin
-        w[:n_games] = weights
-    elif weighting_mode == "margin_scale":
-        y[:n_games] = adj_margin * weights
-        w[:n_games] = 1.0
-    else:
-        raise ValueError(f"Unknown WEIGHTING_MODE: {weighting_mode}")
+    y[:n_games] = adj_margin
+    w[:n_games] = weights
 
     # Zero-sum constraint via high-weight extra row.
     X[-1, :] = 1.0
@@ -2163,7 +2156,7 @@ for i in range(1, max_date_id + 1):
         last_printed_ym = current_ym
 
     try:
-        ranked = _solve_wls(working_df, WEIGHTING_MODE)
+        ranked = _solve_wls(working_df)
 
         if ranked['rating'].isna().any() or np.isinf(ranked['rating']).any():
             continue
