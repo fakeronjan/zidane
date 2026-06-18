@@ -2145,11 +2145,14 @@ for i in range(1, max_date_id + 1):
     working_df.loc[ucl_mask & ~is_knockout, 'date_weight'] *= UCL_GROUP_WEIGHT
     working_df.loc[ucl_mask &  is_knockout, 'date_weight'] *= UCL_KNOCKOUT_WEIGHT
 
-    # Drop zero-margin rows (regulation draws - non-zero shootout-decided
-    # 0-0 games have ±shootout_margin and stay in) to match prior rankit
-    # behavior. The solver doesn't fail on zero rows, but matching the
-    # prior filter keeps the solve equivalent to the pre-port pipeline.
-    working_df = working_df[working_df['adj_margin_home'] != 0]
+    # KEEP draws: a draw between mismatched teams is signal (the WLS row
+    # rating_home - rating_away = adj_margin pulls them together). The old
+    # `adj_margin_home != 0` filter was a vestigial rankit-port carryover that
+    # silently dropped neutral-site regulation draws (neutral games get hfa=0,
+    # so a neutral draw is the only adj_margin_home == 0 case). Negligible for
+    # club soccer (neutral = cup finals, which resolve via shootout and stay
+    # in), but it was the same bug that broke MESSI on neutral WC draws.
+    # Removed 2026-06-18.
     if len(working_df) < 10:
         continue
 
