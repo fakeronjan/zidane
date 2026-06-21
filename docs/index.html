@@ -183,7 +183,9 @@
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     color: #1a6b8a;
+    text-align: center;
   }
+  thead th.col-num { text-align: center; }
   .rating-bar-wrap {
     display: flex;
     flex-direction: column;
@@ -934,8 +936,8 @@ function renderStandings() {
   document.getElementById('standings-table-wrap').innerHTML = `
     <table>
       <thead><tr>
-        <th>OVR #</th><th class="col-hide-mobile">LG #</th>
-        <th>Team</th><th>League</th><th>LEAGUE W-D-L (Pts)</th><th>Rating</th>
+        <th class="col-num">OVR #</th><th class="col-hide-mobile col-num">LG #</th>
+        <th>Team</th><th>League</th><th>LEAGUE W-D-L (Pts)</th><th class="col-num">Rating</th>
         <th>Last Match</th>
         <th class="col-hide-mobile">Date</th>
         <th class="col-hide-mobile">Honors</th>
@@ -1111,8 +1113,8 @@ function renderTeamTable() {
       <thead><tr>
         <th style="text-align:center">Season</th><th>Date</th><th>Last Match</th>
         <th>LEAGUE W-D-L (Pts)</th>
-        <th>OVR #</th><th class="col-hide-mobile">LG #</th>
-        <th>Rating</th>
+        <th class="col-num">OVR #</th><th class="col-hide-mobile col-num">LG #</th>
+        <th class="col-num">Rating</th>
         <th class="col-hide-mobile">League</th>
         <th class="col-hide-mobile">Honors</th>
       </tr></thead>
@@ -1275,8 +1277,8 @@ function renderLeagueHistory(league) {
       : `<td class="${bg} team-cell" style="white-space:nowrap">${t.team}${honors ? ' ' + honors : ''}</td>`;
     return `
       ${teamTd}
-      <td class="${bg} col-hide-mobile" style="font-variant-numeric:tabular-nums;white-space:nowrap;color:#888;font-size:0.85em">${ovrRank}</td>
-      <td class="${bg} col-hide-mobile" style="font-variant-numeric:tabular-nums;white-space:nowrap;color:#888;font-size:0.85em">${lgRank}</td>
+      <td class="${bg} col-hide-mobile" style="font-variant-numeric:tabular-nums;white-space:nowrap;color:#888;font-size:0.85em;text-align:center">${ovrRank}</td>
+      <td class="${bg} col-hide-mobile" style="font-variant-numeric:tabular-nums;white-space:nowrap;color:#888;font-size:0.85em;text-align:center">${lgRank}</td>
       <td class="${bg} rating-cell" style="font-variant-numeric:tabular-nums">${rating}</td>
       <td class="${bg} col-hide-mobile" style="font-variant-numeric:tabular-nums;white-space:nowrap">${fmtRecord(t.record)}</td>`;
   }
@@ -1312,15 +1314,15 @@ function renderLeagueHistory(league) {
       <thead><tr>
         <th style="text-align:center">Season</th>
         <th class="col-champ">Champion</th>
-        <th class="col-champ col-hide-mobile">OVR #</th>
-        <th class="col-champ col-hide-mobile">LG #</th>
-        <th class="col-champ">Rating</th>
+        <th class="col-champ col-hide-mobile col-num">OVR #</th>
+        <th class="col-champ col-hide-mobile col-num">LG #</th>
+        <th class="col-champ col-num">Rating</th>
         <th class="col-champ col-hide-mobile">LG W-D-L (Pts)</th>
         ${dividerHeader}
         <th class="col-ru">Runner-Up</th>
-        <th class="col-ru col-hide-mobile">OVR #</th>
-        <th class="col-ru col-hide-mobile">LG #</th>
-        <th class="col-ru">Rating</th>
+        <th class="col-ru col-hide-mobile col-num">OVR #</th>
+        <th class="col-ru col-hide-mobile col-num">LG #</th>
+        <th class="col-ru col-num">Rating</th>
         <th class="col-ru col-hide-mobile">LG W-D-L (Pts)</th>
       </tr></thead>
       <tbody>${rows}</tbody>
@@ -1375,7 +1377,7 @@ function renderGoat() {
         <th style="text-align:center">Season</th>
         <th>Team</th><th>League</th>
         <th class="col-hide-mobile">LG W-D-L (Pts)</th>
-        <th>Rating</th>
+        <th class="col-num">Rating</th>
         <th class="col-hide-mobile">Honors</th>
       </tr></thead>
       <tbody>${rows}</tbody>
