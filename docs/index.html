@@ -1085,7 +1085,7 @@ function renderTeamTable() {
     updateDisruptedNote('team-summary-disrupted-note-bottom', _seasonsList);
     updateDisruptedNote('team-summary-disrupted-note', []);
   }
-  const _bs1 = barScale([...rows].reverse().map(g => g.rating));
+  const _bs1 = barScale([...rows].reverse().filter(g => g.rank != null).map(g => g.rating));
   const tableRows = [...rows].reverse().map(g => {
     const dateLabel = g.is_domestic_final_day === 1 && g.is_cl_final_day === 1 && g.played_cl
                     ? 'End of domestic season · End of Champions League'
@@ -1100,9 +1100,9 @@ function renderTeamTable() {
     <td style="white-space:nowrap;color:#888;font-size:12px">${dateCell}</td>
     <td class="last-match-cell">${renderLastMatch(g.last_match, g.season, !!g._isStale)}</td>
     <td style="font-variant-numeric:tabular-nums;white-space:nowrap">${fmtRecord(g.record)}</td>
-    <td class="rank-cell">${g.rank}</td>
+    <td class="rank-cell">${g.rank != null ? g.rank : '-'}</td>
     <td class="rank-cell col-hide-mobile">${g.lg_rank != null ? g.lg_rank : '-'}</td>
-    <td>${ratingBar(g.rating, _bs1)}</td>
+    <td>${g.rank != null ? ratingBar(g.rating, _bs1) : '<span style="color:#bbb">-</span>'}</td>
     <td class="col-hide-mobile" style="font-size:11px">${leagueBadge(data.league, g.domestic_finish)}</td>
     <td class="col-hide-mobile" style="font-size:11px">${finishBadge(g.domestic_finish, g.cl_finish, g.el_finish, data.league, g.domestic_cup_finish)}</td>
   </tr>`;
