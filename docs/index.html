@@ -707,7 +707,7 @@ async function teamLinkClick(slug, season) {
   tsView = wantSingle ? 'single' : 'cross';
   buildLeaguePillsFromOpts('ts-view-pills', [
     { value: 'cross',  label: 'All season summary' },
-    { value: 'single', label: 'All games within one season' },
+    { value: 'single', label: 'All matches within one season' },
   ], tsView, v => {
     tsView = v;
     document.getElementById('season-select').style.display   = (v === 'single') ? '' : 'none';
@@ -990,7 +990,7 @@ buildLeaguePills('ts-league-pills', false, tsLeague, v => {
 });
 buildLeaguePillsFromOpts('ts-view-pills', [
   { value: 'cross',  label: 'All season summary' },
-  { value: 'single', label: 'All games within one season' },
+  { value: 'single', label: 'All matches within one season' },
 ], tsView, v => {
   tsView = v;
   document.getElementById('season-select').style.display   = (v === 'single') ? '' : 'none';
