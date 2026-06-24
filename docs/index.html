@@ -475,7 +475,7 @@
   <div id="chart-wrap" style="display:none">
     <svg id="season-chart"></svg>
   </div>
-  <div id="team-table-wrap"><p class="loading">Select a team above.</p></div>
+  <div id="team-table-wrap"><p class="loading">Select a team above</p></div>
   <div class="disrupted-note disrupted-note-bottom" id="team-summary-disrupted-note-bottom" style="display:none"></div>
 </div>
 
@@ -483,7 +483,7 @@
 <div id="league-history" class="tab">
   <div class="league-pills" id="history-domestic-pills" style="margin-bottom:6px"></div>
   <div class="league-pills" id="history-uefa-pills"></div>
-  <div id="history-table-wrap"><p class="loading">Select a competition above.</p></div>
+  <div id="history-table-wrap"><p class="loading">Select a competition above</p></div>
   <div class="disrupted-note disrupted-note-bottom" id="champions-disrupted-note" style="display:none"></div>
 </div>
 
@@ -698,7 +698,7 @@ async function teamLinkClick(slug, season) {
     populateTeams(v);
     document.getElementById('chart-wrap').style.display = 'none';
     document.getElementById('team-table-wrap').innerHTML =
-      '<p class="loading">Select a team above.</p>';
+      '<p class="loading">Select a team above</p>';
     document.getElementById('season-select').innerHTML = '';
   });
   populateTeams(tsLeague);
@@ -857,7 +857,7 @@ async function initStandings() {
     await loadSeason(meta.seasons[0]);
   } catch(e) {
     document.getElementById('standings-table-wrap').innerHTML =
-      `<p class="error">Could not load standings.</p>`;
+      `<p class="error">Could not load standings</p>`;
   }
 }
 
@@ -878,7 +878,7 @@ async function loadSeason(season) {
     updateDisruptedNote('standings-disrupted-note', [season]);
   } catch(e) {
     document.getElementById('standings-table-wrap').innerHTML =
-      `<p class="error">Could not load season data.</p>`;
+      `<p class="error">Could not load season data</p>`;
   }
 }
 
@@ -985,7 +985,7 @@ buildLeaguePills('ts-league-pills', false, tsLeague, v => {
   populateTeams(v);
   document.getElementById('chart-wrap').style.display = 'none';
   document.getElementById('team-table-wrap').innerHTML =
-    '<p class="loading">Select a team above.</p>';
+    '<p class="loading">Select a team above</p>';
   document.getElementById('season-select').innerHTML = '';
 });
 buildLeaguePillsFromOpts('ts-view-pills', [
@@ -1011,7 +1011,7 @@ async function loadTeam(slug) {
       teamCache[slug] = await res.json();
     } catch(e) {
       document.getElementById('team-table-wrap').innerHTML =
-        '<p class="error">Could not load team data.</p>';
+        '<p class="error">Could not load team data</p>';
       return;
     }
   }
@@ -1225,7 +1225,7 @@ async function loadChampions() {
     if (historyComp) renderLeagueHistory(historyComp);
   } catch(e) {
     document.getElementById('history-table-wrap').innerHTML =
-      `<p class="error">Could not load league history.</p>`;
+      `<p class="error">Could not load league history</p>`;
   }
 }
 
@@ -1234,7 +1234,7 @@ function renderLeagueHistory(league) {
   const entries = championsData[league] || [];
   if (!entries.length) {
     document.getElementById('history-table-wrap').innerHTML =
-      `<p class="loading">No data for this competition.</p>`;
+      `<p class="loading">No data for this competition</p>`;
     return;
   }
 
@@ -1305,7 +1305,7 @@ function renderLeagueHistory(league) {
     : `<th class="divider-col"></th>`;
 
   const note = league === 'Europa League'
-    ? `<p class="data-note">Known as the UEFA Cup before the 2009–10 rebrand.</p>`
+    ? `<p class="data-note">Known as the UEFA Cup before the 2009–10 rebrand</p>`
     : '';
 
   document.getElementById('history-table-wrap').innerHTML = `
@@ -1339,7 +1339,7 @@ async function loadGoat() {
     renderGoat();
   } catch(e) {
     document.getElementById('goat-table-wrap').innerHTML =
-      `<p class="error">Could not load GOAT table.</p>`;
+      `<p class="error">Could not load GOAT table</p>`;
   }
 }
 
