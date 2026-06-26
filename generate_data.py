@@ -1,5 +1,5 @@
 """
-generate_data.py - reads zidane_ratings_final.csv and writes JSON files for the web frontend.
+generate_data.py - reads zidane_ratings_final.csv.gz and writes JSON files for the web frontend.
 Run after zidane.py. Outputs to docs/data/.
 """
 
@@ -14,7 +14,7 @@ from datetime import date, datetime, timezone
 os.makedirs('docs/data/teams', exist_ok=True)
 
 print("Reading ratings...")
-df = pd.read_csv('zidane_ratings_final.csv')
+df = pd.read_csv('zidane_ratings_final.csv.gz')
 df['date'] = pd.to_datetime(df['date']).dt.date
 df['last_match_date'] = pd.to_datetime(df['last_match_date'], errors='coerce').dt.date
 
@@ -235,6 +235,10 @@ standings_data = {
             'team':            r['team'],
             'league':          clean(r['league']),
             'rating':          round(float(r['rating']), 3),
+            'rating_o':        round(float(r['rating_o']), 3) if 'rating_o' in r and not pd.isna(r['rating_o']) else None,
+            'rating_d':        round(float(r['rating_d']), 3) if 'rating_d' in r and not pd.isna(r['rating_d']) else None,
+            'rank_o':          int(r['rank_o']) if 'rank_o' in r and not pd.isna(r['rank_o']) else None,
+            'rank_d':          int(r['rank_d']) if 'rank_d' in r and not pd.isna(r['rank_d']) else None,
             'record':          cur_records.get(r['team'], '0-0-0'),
             'games_played':    int(r['games_played']),
             'last_match':      clean(r['last_match']),
@@ -274,7 +278,6 @@ eos = df[df['is_end_of_season'] == 1].copy()
 eos = eos[~eos['season'].isin(GOAT_WARMUP_SEASONS)]
 eos = eos[eos['season'] >= GOAT_FIRST_SEASON]
 eos = eos[(eos['domestic_finish'] == 'Champion') | (eos['cl_finish'] == 'Champion')]
-eos = eos.sort_values('rating', ascending=False).head(50).reset_index(drop=True)
 
 # End-of-season domestic record per (team, season) - used by GOAT and the
 # Champions table. Built once here so both can share the lookup.
@@ -300,9 +303,9 @@ SHORT_SEASONS = {
     },
 }
 
-goat_data = [
-    {
-        'rank':            i + 1,
+def _goat_row(r, rank):
+    return {
+        'rank':            rank,
         'team':            r['team'],
         'season':          r['season'],
         'short_season':          r['season'] in SHORT_SEASONS,
@@ -311,17 +314,25 @@ goat_data = [
         'short_season_note':     SHORT_SEASONS.get(r['season'], {}).get('note', ''),
         'league':          clean(r['league']),
         'rating':          round(float(r['rating']), 3),
+        'rating_o':        round(float(r['rating_o']), 3) if 'rating_o' in r and not pd.isna(r['rating_o']) else None,
+        'rating_d':        round(float(r['rating_d']), 3) if 'rating_d' in r and not pd.isna(r['rating_d']) else None,
+        'rank_o':          int(r['rank_o']) if 'rank_o' in r and not pd.isna(r['rank_o']) else None,
+        'rank_d':          int(r['rank_d']) if 'rank_d' in r and not pd.isna(r['rank_d']) else None,
         'record':          final_record_lookup.get((r['team'], r['season']), '0-0-0'),
         'domestic_finish': clean(r['domestic_finish']),
         'cl_finish':       clean(r['cl_finish']),
         'el_finish':       clean(r['el_finish']),
         'domestic_cup_finish': clean(r.get('domestic_cup_finish', '')),
     }
-    for i, (_, r) in enumerate(eos.iterrows())
-]
 
-with open('docs/data/goat_teams.json', 'w') as f:
-    json.dump(goat_data, f, separators=(',', ':'))
+# Three views off the same champion-gated pool (overall / offense / defense),
+# MESSI-style: every row carries rating + rating_o + rating_d so the frontend can
+# show the split and re-sort by metric; rank is positional to the active sort.
+for _fname, _col in [('goat_teams.json', 'rating'), ('goat_teams_o.json', 'rating_o'), ('goat_teams_d.json', 'rating_d')]:
+    _rows = eos.sort_values(_col, ascending=False).head(50).reset_index(drop=True)
+    _payload = [_goat_row(r, i + 1) for i, (_, r) in enumerate(_rows.iterrows())]
+    with open(f'docs/data/{_fname}', 'w') as f:
+        json.dump(_payload, f, separators=(',', ':'))
 
 # ── 3. Per-team JSON files (game days only) ───────────────────────────────────
 print("Writing per-team JSON files...")
@@ -368,6 +379,10 @@ for team in all_teams:
                 'rating':            round(float(r['rating']), 3),
                 'rank':              int(r['rank']),
                 'lg_rank':           int(r['lg_rank']),
+                'rating_o':          round(float(r['rating_o']), 3) if 'rating_o' in r and not pd.isna(r['rating_o']) else None,
+                'rating_d':          round(float(r['rating_d']), 3) if 'rating_d' in r and not pd.isna(r['rating_d']) else None,
+                'rank_o':            int(r['rank_o']) if 'rank_o' in r and not pd.isna(r['rank_o']) else None,
+                'rank_d':            int(r['rank_d']) if 'rank_d' in r and not pd.isna(r['rank_d']) else None,
                 'is_end_of_season':  int(r['is_end_of_season']),
                 'is_cl_final_day':       int(r.get('is_cl_final_day', 0) or 0),
                 'is_domestic_final_day': int(r.get('is_domestic_final_day', 0) or 0),
@@ -445,6 +460,10 @@ for season in all_seasons:
                 'team':            r['team'],
                 'league':          clean(r['league']),
                 'rating':          round(float(r['rating']), 3),
+                'rating_o':        round(float(r['rating_o']), 3) if 'rating_o' in r and not pd.isna(r['rating_o']) else None,
+                'rating_d':        round(float(r['rating_d']), 3) if 'rating_d' in r and not pd.isna(r['rating_d']) else None,
+                'rank_o':          int(r['rank_o']) if 'rank_o' in r and not pd.isna(r['rank_o']) else None,
+                'rank_d':          int(r['rank_d']) if 'rank_d' in r and not pd.isna(r['rank_d']) else None,
                 'record':          record_as_of(r['team'], season, snap_date),
                 'last_match':      clean(r['last_match']),
                 'last_match_date': clean(r['last_match_date']),
