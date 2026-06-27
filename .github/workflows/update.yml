@@ -38,7 +38,7 @@ jobs:
         run: |
           git config user.name  "ZIDANE Bot"
           git config user.email "zidane-bot@users.noreply.github.com"
-          git add all_club_games.csv zidane_ratings.csv.gz zidane_ratings_final.csv docs/data/
+          git add all_club_games.csv zidane_ratings.csv.gz zidane_ratings_final.csv.gz docs/data/
           if git diff --staged --quiet; then
             echo "No changes to commit."
           else
