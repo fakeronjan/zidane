@@ -9,3 +9,5 @@ zidane_ratings.csv
 # Engine-migration backup snapshots (never commit)
 *-bak
 zidane_ratings_final.csv
+zidane_ratings.csv.gz
+zidane_ratings_final.csv.gz

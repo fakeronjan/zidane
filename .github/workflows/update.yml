@@ -26,10 +26,30 @@ jobs:
           pip install cython numpy
           pip install --no-build-isolation -r requirements.txt
 
+      # Ratings cache lives in the Actions cache, NOT git (it's a regenerable
+      # build artifact - zidane.py's incremental scratchpad - and re-committing a
+      # gzip daily bloated the repo). Rolling key + prefix restore-keys: every run
+      # writes a fresh entry and restores the most recent prior one. A miss (first
+      # run / eviction) is safe: zidane.py rebuilds from scratch.
+      - name: Restore ratings cache
+        uses: actions/cache/restore@v4
+        with:
+          path: zidane_ratings.csv.gz
+          key: zidane-ratings-${{ github.run_id }}
+          restore-keys: zidane-ratings-
+
       - name: Run ratings engine
         run: python zidane.py
         env:
           FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
+
+      # Persist the freshly-updated cache for the next run (only reached if
+      # zidane.py succeeded, so a failed run never saves a partial cache).
+      - name: Save ratings cache
+        uses: actions/cache/save@v4
+        with:
+          path: zidane_ratings.csv.gz
+          key: zidane-ratings-${{ github.run_id }}
 
       - name: Generate web data
         run: python generate_data.py
@@ -38,7 +58,7 @@ jobs:
         run: |
           git config user.name  "ZIDANE Bot"
           git config user.email "zidane-bot@users.noreply.github.com"
-          git add all_club_games.csv zidane_ratings.csv.gz zidane_ratings_final.csv.gz docs/data/
+          git add all_club_games.csv docs/data/
           if git diff --staged --quiet; then
             echo "No changes to commit."
           else
