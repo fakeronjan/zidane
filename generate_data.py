@@ -174,8 +174,12 @@ all_g['record'] = (all_g['cum_w'].astype(int).astype(str) + '-' +
                    all_g['cum_d'].astype(int).astype(str) + '-' +
                    all_g['cum_l'].astype(int).astype(str))
 
-# For current standings: latest record per team in the current season
-current_season_label = date_to_season(pd.Timestamp.today())
+# For current standings: latest record per team in the current season.
+# Derived from the actual latest ranking snapshot's season (matches COBI's
+# pattern) rather than today's calendar date - a date-based guess flips to
+# the next season on Aug 1 even though European leagues don't kick off until
+# mid-August, which wrongly zeroed out every team's W-D-L/points for ~2 weeks.
+current_season_label = df.loc[df['ranking_id'] == df['ranking_id'].max(), 'season'].iloc[0]
 cur_records = (
     all_g[all_g['season'] == current_season_label]
     .sort_values('date')
