@@ -1195,7 +1195,12 @@ def load_domestic_fdco(season):
     for league, code in FDCO_LEAGUE_CODES.items():
         url = f'{FDCO_BASE}/{season_code}/{code}.csv'
         try:
-            r = requests.get(url, timeout=10)
+            # allow_redirects=False: football-data.co.uk 301s a not-yet-published
+            # season file to an unrelated league's CSV (observed: 2026-27 SP1.csv,
+            # before La Liga's real season file existed, redirected to SC1.csv -
+            # Scottish Championship - silently ingesting mislabeled "La Liga" games).
+            # A real published file always returns 200 directly, never a redirect.
+            r = requests.get(url, timeout=10, allow_redirects=False)
             if r.status_code != 200:
                 print(f"  Warning: {league} {season} not available ({r.status_code})")
                 continue
