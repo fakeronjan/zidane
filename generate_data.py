@@ -34,7 +34,7 @@ def _season_from_date(d):
     return f"{d.year}-{str(d.year+1)[-2:]}" if d.month >= 8 else f"{d.year-1}-{str(d.year)[-2:]}"
 
 _cl_games_for_dates = pd.read_csv(
-    'all_club_games.csv', parse_dates=['date'], usecols=['date', 'competition'])
+    'all_club_games.csv', parse_dates=['date'], usecols=['date', 'competition', 'neutral'])
 _cl_games_for_dates = _cl_games_for_dates[
     _cl_games_for_dates['competition'] == 'Champions League'
 ].dropna(subset=['date']).copy()
@@ -42,6 +42,27 @@ _cl_games_for_dates['season'] = _cl_games_for_dates['date'].apply(_season_from_d
 _cl_final_date_by_season = (
     _cl_games_for_dates.groupby('season')['date'].max().dt.date.to_dict()
 )
+
+# For the live current season, the "max CL game date" above is just the
+# latest game scraped so far (e.g. League Phase matchday 1 in September) -
+# NOT the actual Final, which won't happen until next May/June. Since today
+# is always past whatever's been scraped, trusting that max date flips
+# season_is_complete true the moment any current-season CL game lands.
+# zidane.py sources the live season's CL games from football-data.org, which
+# tags the real Final via `neutral` (only the FINAL-stage game sets it
+# True) - so for that one season, require an actual neutral=True row before
+# treating the max date as the Final. Historical seasons never set
+# `neutral` (openfootball doesn't track it) but are always fully complete
+# by the time they're in the data, so the plain max-date shortcut stays
+# correct for them.
+_current_live_season = _season_from_date(date.today())
+if _current_live_season in _cl_final_date_by_season:
+    _real_final_played = (
+        (_cl_games_for_dates['season'] == _current_live_season) &
+        (_cl_games_for_dates['neutral'] == True)
+    ).any()
+    if not _real_final_played:
+        del _cl_final_date_by_season[_current_live_season]
 
 
 def season_is_complete(season_str):

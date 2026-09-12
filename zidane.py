@@ -2364,6 +2364,28 @@ _cl_final_date_by_comp_season = (
     .to_dict()
 )
 
+# For the live current season, the "max CL game date" above is just the
+# latest game we've scraped so far (e.g. League Phase matchday 1 in
+# September) - NOT the actual Final, which won't happen until next May/June.
+# Since today is always past whatever we've scraped, trusting that max date
+# flips season_is_complete true the moment any current-season CL game lands.
+# STEP 4 sources the live season's CL games from football-data.org, which
+# tags the real Final via `neutral` (only the FINAL-stage game sets it
+# True) - so for that one season, require an actual neutral=True row before
+# treating the max date as the Final. Historical seasons never set
+# `neutral` (openfootball doesn't track it) but are always fully complete
+# by the time they're in the data, so the plain max-date shortcut stays
+# correct for them.
+_current_live_season = make_season(_cur_start)
+if _current_live_season in _cl_final_date_by_comp_season:
+    _real_final_played = (
+        (df['competition'] == 'Champions League') &
+        (df['comp_season'] == _current_live_season) &
+        (df['neutral'] == True)
+    ).any()
+    if not _real_final_played:
+        del _cl_final_date_by_comp_season[_current_live_season]
+
 
 def season_is_complete(season_str):
     """Season is complete once today is past its CL Final game date.
