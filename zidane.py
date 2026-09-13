@@ -400,6 +400,7 @@ TEAM_NAME_MAP = {
     'Almeria':                          'UD Almería',
     'Ath Bilbao':                       'Athletic Club de Bilbao',
     'Athletic Club':                    'Athletic Club de Bilbao',
+    'Atl. Madrid':                      'Club Atlético de Madrid',
     'Ath Madrid':                       'Club Atlético de Madrid',
     'Atletico Madrid':                  'Club Atlético de Madrid',
     'Atlético Madrid':                  'Club Atlético de Madrid',
@@ -621,6 +622,8 @@ TEAM_NAME_MAP = {
     'CD Numancia':                      'CD Numancia',
     'CF Extremadura':                   'CF Extremadura',
     'CP Merida':                        'CP Mérida',
+    'Dep. A Coruna':                    'Deportivo de La Coruña',
+    'La Coruna':                        'Deportivo de La Coruña',
     'Deportivo La Coruna':              'Deportivo de La Coruña',
     'Gimnastic':                        'Gimnàstic de Tarragona',
     'Hercules CF':                      'Hércules CF',
@@ -2743,9 +2746,32 @@ final_df = final_df[[
 final_df.sort_values(['ranking_id', 'rank'], inplace=True)
 final_df.drop_duplicates(keep='first', inplace=True)
 
-# Minimum games filter - drops relegated clubs with sparse history
-# and non-top-5 clubs appearing only via European competition
-final_df = final_df[final_df['games_played'] >= min_games]
+# Domestic-membership filter (2026-09-13, replaces a flat games_played>=min_games
+# cut). The old cut conflated "signal quality" (early-season sparse data) with
+# "league membership" (a hard per-season fact): a relegated club's rating
+# lingered for ~min_games snapshots after relegation because its rolling
+# window was still full of last season's games, while a freshly promoted club
+# was invisible for its first ~min_games games despite being a real,
+# currently-playing top-flight team.
+#
+# Fix: a team that IS a Big-5 domestic member for its row's own season
+# (_big5_by_season, already computed above for the WLS network filter) always
+# survives, regardless of games_played - this drops relegated clubs the
+# instant their season has zero Big-5 games, and surfaces promoted clubs from
+# their first game. A team that has NEVER been a Big-5 domestic member in any
+# season (pure European-competition crashers, e.g. a Portuguese or Scottish
+# side reaching a CL/EL group stage) still needs the old rolling-window bar,
+# since per-season "membership" isn't a meaningful concept for them.
+_all_big5_domestic_teams = set().union(*_big5_by_season.values()) if _big5_by_season else set()
+final_df['_big5_member_this_season'] = final_df.apply(
+    lambda r: r['team'] in _big5_by_season.get(r['season'], set()), axis=1
+)
+final_df['_ever_big5_domestic'] = final_df['team'].isin(_all_big5_domestic_teams)
+final_df = final_df[
+    final_df['_big5_member_this_season']
+    | (~final_df['_ever_big5_domestic'] & (final_df['games_played'] >= min_games))
+]
+final_df.drop(columns=['_big5_member_this_season', '_ever_big5_domestic'], inplace=True)
 
 # Renumber ranks contiguously within each snapshot after filtering.
 # (fakeronjan WLS input is now restricted to Big-5-vs-Big-5 games, so the network
