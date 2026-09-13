@@ -65,7 +65,12 @@ CHAMPIONS_LEAGUE_BASE = 'https://raw.githubusercontent.com/openfootball/champion
 
 # Domestic leagues via football-data.co.uk (free CSVs, no key required)
 # URL pattern: {FDCO_BASE}/{YYZZ}/{code}.csv  e.g. 1112/E0.csv for EPL 2011-12
-FDCO_BASE = 'https://www.football-data.co.uk/mmz4281'
+# NOTE (2026-09-13): must be the bare apex domain, not www - football-data.co.uk
+# now 302s every www. request to the apex, and load_domestic_fdco()'s
+# allow_redirects=False (added to catch a real wrong-league redirect bug) can't
+# tell that apart from a malicious redirect, so a www URL here silently drops
+# every league's current-season data instead of erroring loudly.
+FDCO_BASE = 'https://football-data.co.uk/mmz4281'
 FDCO_LEAGUE_CODES = {
     'EPL':        'E0',
     'La Liga':    'SP1',
