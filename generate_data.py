@@ -230,22 +230,29 @@ _lo = league_odds.compute_cached(
     _lo_games, pd.read_csv('zidane_ratings_final.csv.gz', usecols=['date', 'team', 'rating_o', 'rating_d']),
     league_odds.league_games(_lo_games)['league_season'].max())
 _lo['date'] = pd.to_datetime(_lo['date']).dt.date
+# Rank within the league on each date (1 = most likely); clubs at 0 unranked.
+for _col, _rk in (('title', 'title_rank'), ('releg', 'releg_rank')):
+    _lo[_rk] = (_lo[_col].where(_lo[_col] > 0)
+                .groupby([_lo['date'], _lo['league']]).rank(ascending=False, method='min'))
 _league_odds_series = {
-    k: (g['date'].tolist(), list(zip(g['title'], g['releg'])))
+    k: (g['date'].tolist(), list(zip(g['title'], g['title_rank'], g['releg'], g['releg_rank'])))
     for k, g in _lo.sort_values('date').groupby(['league', 'team'])
 }
+_ODDS_FIELDS = ('title_odds', 'title_odds_rank', 'releg_odds', 'releg_odds_rank')
 
 
 def league_odds_at(team, league, d):
-    """(title, relegation) probabilities for a club on date d, or (None, None)."""
+    """(title, title rank, relegation, relegation rank) for a club on date d;
+    Nones when it has no odds."""
     s = _league_odds_series.get((league, team))
     if not s:
-        return None, None
+        return None, None, None, None
     i = bisect.bisect_right(s[0], d) - 1
     if i < 0:
-        return None, None
-    title, releg = s[1][i]
-    return round(float(title), 4), round(float(releg), 4)
+        return None, None, None, None
+    title, trk, releg, rrk = s[1][i]
+    rk = lambda r: None if pd.isna(r) else int(r)
+    return round(float(title), 4), rk(trk), round(float(releg), 4), rk(rrk)
 
 
 # Per-team, per-season sorted record history.
@@ -311,7 +318,7 @@ standings_data = {
             'cl_finish':       clean(r['cl_finish']),
             'el_finish':       clean(r['el_finish']),
             'domestic_cup_finish': clean(r.get('domestic_cup_finish', '')),
-            **dict(zip(('title_odds', 'releg_odds'), league_odds_at(r['team'], clean(r['league']), r['date']))),
+            **dict(zip(_ODDS_FIELDS, league_odds_at(r['team'], clean(r['league']), r['date']))),
         }
         for _, r in latest.iterrows()
     ]
@@ -458,7 +465,7 @@ for team in all_teams:
                 'cl_finish':         clean(r['cl_finish']),
                 'el_finish':         clean(r['el_finish']),
                 'domestic_cup_finish': clean(r.get('domestic_cup_finish', '')),
-                **dict(zip(('title_odds', 'releg_odds'), league_odds_at(team, clean(r['league']), r['date']))),
+                **dict(zip(_ODDS_FIELDS, league_odds_at(team, clean(r['league']), r['date']))),
             }
             for _, r in sdf.sort_values('date').iterrows()
         ]
@@ -537,7 +544,7 @@ for season in all_seasons:
                 'cl_finish':       clean(r['cl_finish']),
                 'el_finish':       clean(r['el_finish']),
             'domestic_cup_finish': clean(r.get('domestic_cup_finish', '')),
-            **dict(zip(('title_odds', 'releg_odds'), league_odds_at(r['team'], clean(r['league']), rdf['date'].iloc[0]))),
+            **dict(zip(_ODDS_FIELDS, league_odds_at(r['team'], clean(r['league']), rdf['date'].iloc[0]))),
             }
             for _, r in rdf.iterrows()
         ]
