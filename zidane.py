@@ -2345,12 +2345,19 @@ print("zidane_ratings.csv.gz saved!")
 
 print("Computing standings...")
 
+# League tables use each league's own season calendar (zidane_seasons): the
+# date rule misfiles July kickoffs and the COVID-delayed 2019-20 finishes.
+from zidane_seasons import league_season_labels
+_table = df.copy()
+_lg = _table['competition'].isin(BIG5_LEAGUES)
+_table.loc[_lg, 'season'] = league_season_labels(_table.loc[_lg])
+
 # Build a team-perspective view (one row per team per game)
-home_view = df[['season', 'competition', 'home_team', 'away_team',
+home_view = _table[['season', 'competition', 'home_team', 'away_team',
                 'home_score_int', 'away_score_int', 'home_win']].copy()
 home_view.columns = ['season', 'competition', 'team', 'opponent', 'gf', 'ga', 'result']
 
-away_view = df[['season', 'competition', 'away_team', 'home_team',
+away_view = _table[['season', 'competition', 'away_team', 'home_team',
                 'away_score_int', 'home_score_int', 'away_win']].copy()
 away_view.columns = ['season', 'competition', 'team', 'opponent', 'gf', 'ga', 'result']
 

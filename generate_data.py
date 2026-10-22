@@ -108,6 +108,9 @@ def clean(val):
 def slug(name):
     return re.sub(r'[^\w]', '_', name).strip('_')
 
+from zidane_seasons import league_season_labels
+
+
 def date_to_season(d):
     if d.month >= 8:
         return f"{d.year}-{str(d.year+1)[-2:]}"
@@ -124,6 +127,11 @@ games_raw['home_score'] = pd.to_numeric(games_raw['home_score'], errors='coerce'
 games_raw['away_score'] = pd.to_numeric(games_raw['away_score'], errors='coerce')
 games_raw = games_raw.dropna(subset=['home_score', 'away_score']).copy()
 games_raw['season'] = games_raw['date'].apply(date_to_season)
+# League games take their season from the fixture calendar (zidane_seasons):
+# July kickoffs and the COVID-delayed 2019-20 finishes otherwise land in the
+# wrong season and inflate games played.
+_lg = games_raw['competition'].isin(DOMESTIC_LEAGUES)
+games_raw.loc[_lg, 'season'] = league_season_labels(games_raw.loc[_lg])
 
 # Build season overrides for CL/EL games whose comp_season differs from the
 # date-computed season (e.g. the 2020 COVID bubble: Aug 2020 CL games → 2019-20).
