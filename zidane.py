@@ -1185,6 +1185,26 @@ TEAM_NAME_MAP = {
     'Domagnano':                        'SS Domagnano',
     'Pennarossa':                       'SP Pennarossa',
     'Cosmos':                           'SS Cosmos',
+    # Big-5 clubs that the sources name differently across eras. Each pair
+    # was showing up as two teams, each with half the club's history.
+    'St Pauli':                         'FC St. Pauli',
+    'Como':                             'Como 1907',
+    'Como Calcio':                      'Como 1907',
+    'Troyes':                           'ESTAC Troyes',
+    'Venezia':                          'Venezia FC',
+    'AC Venezia':                       'Venezia FC',
+    'CD Alaves':                        'Deportivo Alavés',
+    'Alavés':                           'Deportivo Alavés',
+    'Oviedo':                           'Real Oviedo',
+    'Salernitana Sport':                'US Salernitana 1919',
+    'Cremonese':                        'US Cremonese',
+    'US Valenciennes-Anzin':            'Valenciennes FC',
+    'Bielefeld':                        'Arminia Bielefeld',
+    'AS Livorno':                       'AS Livorno Calcio',
+    'Le Mans':                          'Le Mans FC',
+    'Le Mans UC 72':                    'Le Mans FC',
+    'Pescara':                          'Delfino Pescara',
+    'Pescara Calcio':                   'Delfino Pescara',
 }
 
 def normalize_team(raw_name):
@@ -2003,6 +2023,12 @@ if len(null_scores):
 if os.path.exists('all_club_games.csv'):
     _prev = pd.read_csv('all_club_games.csv')
     _prev['date'] = pd.to_datetime(_prev['date'], errors='coerce')
+    # Stored rows carry the names from when they were saved; re-map them so a
+    # TEAM_NAME_MAP change renames history instead of duplicating every game
+    # under the old and new names.
+    for _c in ('home_team', 'away_team', 'shootout_winner'):
+        if _c in _prev:
+            _prev[_c] = _prev[_c].map(lambda n: TEAM_NAME_MAP.get(n, n) if isinstance(n, str) else n)
     _key = ['date', 'home_team', 'away_team']
     _fresh = df.copy();  _fresh['_src_priority'] = 0
     _prevp = _prev.copy(); _prevp['_src_priority'] = 1

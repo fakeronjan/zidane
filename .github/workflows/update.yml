@@ -35,8 +35,8 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: zidane_ratings.csv.gz
-          key: zidane-ratings-${{ github.run_id }}
-          restore-keys: zidane-ratings-
+          key: zidane-ratings-v2-${{ github.run_id }}
+          restore-keys: zidane-ratings-v2-
 
       - name: Run ratings engine
         run: python zidane.py
@@ -49,7 +49,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: zidane_ratings.csv.gz
-          key: zidane-ratings-${{ github.run_id }}
+          key: zidane-ratings-v2-${{ github.run_id }}
 
       - name: Generate web data
         run: python generate_data.py
