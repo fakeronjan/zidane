@@ -51,8 +51,25 @@ jobs:
           path: zidane_ratings.csv.gz
           key: zidane-ratings-v3-${{ github.run_id }}
 
+      # league_odds_cache/ holds per-league-season Monte Carlo results
+      # (league_odds.py), keyed by a fingerprint of each season's inputs, so a
+      # daily run only re-simulates the current season. A miss recomputes
+      # every season (about an hour), which is safe.
+      - name: Restore league-odds cache
+        uses: actions/cache/restore@v4
+        with:
+          path: league_odds_cache
+          key: zidane-league-odds-${{ github.run_id }}
+          restore-keys: zidane-league-odds-
+
       - name: Generate web data
         run: python generate_data.py
+
+      - name: Save league-odds cache
+        uses: actions/cache/save@v4
+        with:
+          path: league_odds_cache
+          key: zidane-league-odds-${{ github.run_id }}
 
       - name: Commit and push updated data
         run: |
