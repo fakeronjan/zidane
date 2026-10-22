@@ -109,6 +109,7 @@ def slug(name):
     return re.sub(r'[^\w]', '_', name).strip('_')
 
 from zidane_seasons import league_season_labels
+from zidane_rules import ordered_table
 
 
 def date_to_season(d):
@@ -615,7 +616,9 @@ for league in sorted(DOMESTIC_LEAGUES):
     for season in sorted(league_pts['season'].unique(), reverse=True):
         if not season_is_complete(season):
             continue
-        s_pts = league_pts[league_pts['season'] == season].sort_values(['pts', 'gd'], ascending=False).reset_index(drop=True)
+        # The league's own points-for-a-win and tiebreakers (zidane_rules).
+        s_pts = ordered_table(games_dom_pts[(games_dom_pts['competition'] == league) &
+                                            (games_dom_pts['season'] == season)], league, season)
         if len(s_pts) < 2:
             continue
         champ_name = s_pts.iloc[0]['team']

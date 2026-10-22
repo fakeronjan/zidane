@@ -1205,6 +1205,9 @@ TEAM_NAME_MAP = {
     'Le Mans UC 72':                    'Le Mans FC',
     'Pescara':                          'Delfino Pescara',
     'Pescara Calcio':                   'Delfino Pescara',
+    # football-data.co.uk short names for Ligue 1 1994-95 (engsoccerdata gap)
+    'Cannes':                           'AS Cannes',
+    'Martigues':                        'FC Martigues',
 }
 
 def normalize_team(raw_name):
@@ -1218,11 +1221,13 @@ def normalize_team(raw_name):
 # Schema: { "name": "...", "matches": [ { "round", "date", "time",
 #           "team1", "team2", "score": { "ht": [h,a], "ft": [h,a] } } ] }
 
-def load_domestic_fdco(season):
+def load_domestic_fdco(season, leagues=None):
     # football-data.co.uk season code: "2011-12" → "1112"
     season_code = f"{season[2:4]}{season[5:7]}"
     rows = []
     for league, code in FDCO_LEAGUE_CODES.items():
+        if leagues is not None and league not in leagues:
+            continue
         url = f'{FDCO_BASE}/{season_code}/{code}.csv'
         try:
             # allow_redirects=False: football-data.co.uk 301s a not-yet-published
@@ -1946,7 +1951,14 @@ for season in ALL_SEASONS:
     season_year = int(season[:4])
     if season_year <= LAST_LEGACY_SEASON_YEAR:
         # 1992-93 -> 2010-11: engsoccerdata for both domestic and Champions League.
-        all_rows.extend(load_domestic_engsoccerdata(season))
+        _dom = load_domestic_engsoccerdata(season)
+        # engsoccerdata skips some league-seasons (France 1994-95); fill any
+        # league with no rows from football-data.co.uk.
+        _missing = [lg for lg in FDCO_LEAGUE_CODES if lg not in {r['competition'] for r in _dom}]
+        if _missing:
+            print(f"  {season}: filling {', '.join(_missing)} from football-data.co.uk")
+            _dom.extend(load_domestic_fdco(season, _missing))
+        all_rows.extend(_dom)
         all_rows.extend(load_champs_engsoccerdata(season))
     else:
         # 2011-12 onward: original pipeline.
@@ -2374,7 +2386,12 @@ standings_df = (
     .reset_index()
 )
 standings_df['gd']  = standings_df['gf'] - standings_df['ga']
-standings_df['pts'] = standings_df['w'] * 3 + standings_df['d']
+# Leagues used 2 points for a win until the mid-1990s (zidane_rules); cups
+# and Europe keep 3.
+from zidane_rules import points_per_win, ordered_table
+_ppw = [points_per_win(c, s) if c in BIG5_LEAGUES else 3
+        for c, s in zip(standings_df['competition'], standings_df['season'])]
+standings_df['pts'] = standings_df['w'] * pd.Series(_ppw, index=standings_df.index) + standings_df['d']
 standings_df = standings_df.sort_values(
     ['season', 'competition', 'pts', 'gd', 'gf'],
     ascending=[True, True, False, False, False]
@@ -2451,7 +2468,12 @@ cup_records      = []   # Phase 3: domestic cup champion / runner-up
 # In-progress seasons: label as 1st / 2nd (no trophy awarded yet).
 dom_std = standings_df[standings_df['competition'].isin(FDCO_LEAGUE_CODES.keys())].copy()
 for (season, competition), group in dom_std.groupby(['season', 'competition']):
-    group = group.sort_values(['pts', 'gd', 'gf'], ascending=False)
+    # The league's own tiebreakers (head-to-head first in La Liga and Serie A).
+    _lg_games = _table[(_table['competition'] == competition) & (_table['season'] == season)]
+    _lg_games = pd.DataFrame({'home_team': _lg_games['home_team'], 'away_team': _lg_games['away_team'],
+                              'home_score': _lg_games['home_score_int'], 'away_score': _lg_games['away_score_int']})
+    _order = ordered_table(_lg_games, competition, season)['team'].tolist()
+    group = group.set_index('team').loc[[t for t in _order if t in set(group['team'])]].reset_index()
     complete = season_is_complete(season)
     labels = ['Champion', 'Runner-Up'] if complete else ['1st', '2nd']
     for i, label in enumerate(labels):
