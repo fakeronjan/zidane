@@ -2054,6 +2054,17 @@ if os.path.exists('all_club_games.csv'):
     df = (_combined.drop(columns=['_src_priority'])
                    .sort_values('date').reset_index(drop=True))
 
+# Source date errors, corrected on both fresh and stored rows (then de-duplicated).
+DATE_FIXES = {
+    # engsoccerdata dates the 2009-10 CL semifinal first leg (Inter 3-1
+    # Barcelona) a year early.
+    ('2009-04-20', 'FC Internazionale Milano', 'FC Barcelona'): '2010-04-20',
+}
+for (_bad, _h, _a), _good in DATE_FIXES.items():
+    _m = (df['date'] == pd.Timestamp(_bad)) & (df['home_team'] == _h) & (df['away_team'] == _a)
+    df.loc[_m, 'date'] = pd.Timestamp(_good)
+df = df.drop_duplicates(subset=['date', 'home_team', 'away_team'], keep='first').sort_values('date').reset_index(drop=True)
+
 df.to_csv('all_club_games.csv', index=False)
 print(f"Master game file saved: {len(df)} rows")
 
