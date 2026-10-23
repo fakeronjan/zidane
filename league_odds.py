@@ -53,6 +53,15 @@ def hfa_for(date):
     return 0.275
 
 
+def cl_places(league, season):
+    """Guaranteed Champions League places from the league table, current
+    format only (2024-25 on); None before. Extra places for the two best
+    leagues in Europe and the title holders' places aren't counted."""
+    if int(season[:4]) < 2024:
+        return None
+    return 3 if league == 'Ligue 1' else 4
+
+
 def relegation_rule(league, season):
     """(direct relegation positions, playoff positions, P(playoff club goes
     down)) for a league season. Positions are 1-based from the top."""
@@ -188,7 +197,9 @@ class SeasonSim:
         direct, playoff, p_down = relegation_rule(self.league, self.season)
         title = (pos == 1).mean(axis=0)
         releg = np.isin(pos, direct).mean(axis=0) + p_down * np.isin(pos, playoff).mean(axis=0)
-        return {t: (float(title[i]), float(releg[i])) for t, i in self.idx.items()}
+        places = cl_places(self.league, self.season)
+        qual = (pos <= places).mean(axis=0) if places else np.full(len(self.teams), np.nan)
+        return {t: (float(title[i]), float(releg[i]), float(qual[i])) for t, i in self.idx.items()}
 
 
 def league_games(games):
@@ -212,7 +223,7 @@ def season_odds(L, ratings, league, season, current_season, seed=0):
     league season (plus the day before it starts)."""
     S = L[(L['competition'] == league) & (L['league_season'] == season)]
     if S.empty:
-        return pd.DataFrame(columns=['date', 'league', 'season', 'team', 'title', 'releg'])
+        return pd.DataFrame(columns=['date', 'league', 'season', 'team', 'title', 'releg', 'cl_qual'])
     seasons = sorted(L['league_season'].unique())
     i = seasons.index(season)
     prev = set()
@@ -226,9 +237,9 @@ def season_odds(L, ratings, league, season, current_season, seed=0):
     out = []
     for d in dates:
         mu = league_mu(L, league, pd.Timestamp(d))
-        for t, (ti, re) in sim.odds_at(d, mu, rng).items():
-            out.append((pd.Timestamp(d), league, season, t, ti, re))
-    return pd.DataFrame(out, columns=['date', 'league', 'season', 'team', 'title', 'releg'])
+        for t, (ti, re, q) in sim.odds_at(d, mu, rng).items():
+            out.append((pd.Timestamp(d), league, season, t, ti, re, q))
+    return pd.DataFrame(out, columns=['date', 'league', 'season', 'team', 'title', 'releg', 'cl_qual'])
 
 
 # ── Cache: finished seasons are computed once ───────────────────────────────

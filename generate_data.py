@@ -234,25 +234,57 @@ _lo['date'] = pd.to_datetime(_lo['date']).dt.date
 for _col, _rk in (('title', 'title_rank'), ('releg', 'releg_rank')):
     _lo[_rk] = (_lo[_col].where(_lo[_col] > 0)
                 .groupby([_lo['date'], _lo['league']]).rank(ascending=False, method='min'))
+_lo['qual_rank'] = (_lo['cl_qual'].where(_lo['cl_qual'] > 0)
+                    .groupby([_lo['date'], _lo['league']]).rank(ascending=False, method='min'))
 _league_odds_series = {
-    k: (g['date'].tolist(), list(zip(g['title'], g['title_rank'], g['releg'], g['releg_rank'])))
+    k: (g['date'].tolist(), list(zip(g['title'], g['title_rank'], g['releg'], g['releg_rank'],
+                                     g['cl_qual'], g['qual_rank'])))
     for k, g in _lo.sort_values('date').groupby(['league', 'team'])
 }
-_ODDS_FIELDS = ('title_odds', 'title_odds_rank', 'releg_odds', 'releg_odds_rank')
+_ODDS_FIELDS = ('title_odds', 'title_odds_rank', 'releg_odds', 'releg_odds_rank',
+                'cl_qual_odds', 'cl_qual_rank', 'cl_win_odds', 'cl_win_rank')
+
+# ── Champions League winner odds (cl_odds.py), 2003-04 on ─────────────────
+print("Computing Champions League odds...")
+import cl_odds
+_sched = pd.read_csv('cl_schedule.csv') if os.path.exists('cl_schedule.csv') else None
+_co = cl_odds.compute_cached(_lo_games, pd.read_csv('zidane_ratings_final.csv.gz',
+                                                    usecols=['date', 'team', 'rating_o', 'rating_d']), _sched)
+_co['date'] = pd.to_datetime(_co['date']).dt.date
+_co['rank'] = (_co['cl_win'].where(_co['cl_win'] > 0)
+               .groupby(_co['date']).rank(ascending=False, method='min'))
+_cl_last_date = _co.groupby('season')['date'].max().to_dict()
+_cl_odds_series = {t: (g['date'].tolist(), list(zip(g['cl_win'], g['rank'], g['season'])))
+                   for t, g in _co.sort_values('date').groupby('team')}
+
+
+def cl_odds_at(team, d):
+    """(P(win the CL), rank among CL clubs) on date d, within that CL season."""
+    s = _cl_odds_series.get(team)
+    if not s:
+        return None, None
+    i = bisect.bisect_right(s[0], d) - 1
+    if i < 0:
+        return None, None
+    p, rk, season = s[1][i]
+    if season != _season_from_date(d) and d > _cl_last_date[season]:
+        return None, None
+    return round(float(p), 4), (None if pd.isna(rk) else int(rk))
 
 
 def league_odds_at(team, league, d):
-    """(title, title rank, relegation, relegation rank) for a club on date d;
-    Nones when it has no odds."""
-    s = _league_odds_series.get((league, team))
-    if not s:
-        return None, None, None, None
-    i = bisect.bisect_right(s[0], d) - 1
-    if i < 0:
-        return None, None, None, None
-    title, trk, releg, rrk = s[1][i]
+    """League odds (title, relegation, CL qualification, each with its league
+    rank) and CL winner odds with rank, for a club on date d; Nones where it
+    has none."""
     rk = lambda r: None if pd.isna(r) else int(r)
-    return round(float(title), 4), rk(trk), round(float(releg), 4), rk(rrk)
+    cl = cl_odds_at(team, d)
+    s = _league_odds_series.get((league, team))
+    i = bisect.bisect_right(s[0], d) - 1 if s else -1
+    if i < 0:
+        return (None, None, None, None, None, None) + cl
+    title, trk, releg, rrk, qual, qrk = s[1][i]
+    q = None if pd.isna(qual) else round(float(qual), 4)
+    return (round(float(title), 4), rk(trk), round(float(releg), 4), rk(rrk), q, rk(qrk)) + cl
 
 
 # Per-team, per-season sorted record history.

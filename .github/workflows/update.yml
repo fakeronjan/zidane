@@ -62,8 +62,23 @@ jobs:
           key: zidane-league-odds-${{ github.run_id }}
           restore-keys: zidane-league-odds-
 
+      # cl_odds_cache/: per-season Champions League Monte Carlo (cl_odds.py),
+      # same fingerprint scheme as league_odds_cache.
+      - name: Restore CL-odds cache
+        uses: actions/cache/restore@v4
+        with:
+          path: cl_odds_cache
+          key: zidane-cl-odds-${{ github.run_id }}
+          restore-keys: zidane-cl-odds-
+
       - name: Generate web data
         run: python generate_data.py
+
+      - name: Save CL-odds cache
+        uses: actions/cache/save@v4
+        with:
+          path: cl_odds_cache
+          key: zidane-cl-odds-${{ github.run_id }}
 
       - name: Save league-odds cache
         uses: actions/cache/save@v4

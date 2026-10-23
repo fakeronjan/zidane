@@ -1722,6 +1722,10 @@ def load_european_from_wikipedia(season, competition_label, wiki_token):
 # parse_european_txt returns so it's a drop-in replacement.
 FDA_BASE = 'https://api.football-data.org/v4'
 
+# Unplayed CL fixtures for the current season, written to cl_schedule.csv.
+CL_SCHEDULE = []
+
+
 def load_european_from_fda(season, competition_label, fda_code):
     """Pull a full season of European competition matches from football-data.org.
     Returns None if the API key is missing or the request fails - caller should
@@ -1747,6 +1751,13 @@ def load_european_from_fda(season, competition_label, fda_code):
     rows = []
     for m in r.json().get('matches', []):
         if m.get('status') != 'FINISHED':
+            # Fixtures still to play feed the CL odds sim (cl_odds.py).
+            if fda_code == 'CL' and m.get('status') in ('SCHEDULED', 'TIMED', 'POSTPONED') \
+                    and m.get('homeTeam', {}).get('name') and m.get('awayTeam', {}).get('name'):
+                CL_SCHEDULE.append({'date': m['utcDate'][:10],
+                                    'home_team': normalize_team(m['homeTeam']['name']),
+                                    'away_team': normalize_team(m['awayTeam']['name']),
+                                    'stage': m.get('stage', ''), 'comp_season': season})
             continue
         ft = (m.get('score') or {}).get('fullTime') or {}
         gh, ga = ft.get('home'), ft.get('away')
@@ -2067,6 +2078,9 @@ df = df.drop_duplicates(subset=['date', 'home_team', 'away_team'], keep='first')
 
 df.to_csv('all_club_games.csv', index=False)
 print(f"Master game file saved: {len(df)} rows")
+pd.DataFrame(CL_SCHEDULE, columns=['date', 'home_team', 'away_team', 'stage', 'comp_season']) \
+    .to_csv('cl_schedule.csv', index=False)
+print(f"CL fixtures still to play: {len(CL_SCHEDULE)}")
 
 # Label UCL knockout games via bracket walk (post-data-assembly, pre-ratings).
 print("Labelling UCL knockout games via bracket walk...")
