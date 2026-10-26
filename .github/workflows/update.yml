@@ -35,8 +35,8 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: zidane_ratings.csv.gz
-          key: zidane-ratings-v4-${{ github.run_id }}
-          restore-keys: zidane-ratings-v4-
+          key: zidane-ratings-v5-${{ github.run_id }}
+          restore-keys: zidane-ratings-v5-
 
       - name: Run ratings engine
         run: python zidane.py
@@ -49,7 +49,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: zidane_ratings.csv.gz
-          key: zidane-ratings-v4-${{ github.run_id }}
+          key: zidane-ratings-v5-${{ github.run_id }}
 
       # league_odds_cache/ holds per-league-season Monte Carlo results
       # (league_odds.py), keyed by a fingerprint of each season's inputs, so a
@@ -71,8 +71,23 @@ jobs:
           key: zidane-cl-odds-${{ github.run_id }}
           restore-keys: zidane-cl-odds-
 
+      # matchups_cache/ holds per-season Daily Matchups (daily_matchups.py),
+      # fingerprinted the same way: a stale or missing season recomputes.
+      - name: Restore matchups cache
+        uses: actions/cache/restore@v4
+        with:
+          path: matchups_cache
+          key: zidane-matchups-${{ github.run_id }}
+          restore-keys: zidane-matchups-
+
       - name: Generate web data
         run: python generate_data.py
+
+      - name: Save matchups cache
+        uses: actions/cache/save@v4
+        with:
+          path: matchups_cache
+          key: zidane-matchups-${{ github.run_id }}
 
       - name: Save CL-odds cache
         uses: actions/cache/save@v4

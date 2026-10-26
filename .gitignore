@@ -14,3 +14,6 @@ zidane_ratings_final.csv.gz
 league_odds_cache/
 cl_schedule.csv
 cl_odds_cache/
+matchups_cache/
+league_schedule.csv
+league_kickoffs.csv

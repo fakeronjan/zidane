@@ -9,6 +9,7 @@ import numpy as np
 import requests
 import io
 import re
+import time
 from datetime import date
 from bs4 import BeautifulSoup
 import warnings
@@ -1210,16 +1211,285 @@ TEAM_NAME_MAP = {
     'Martigues':                        'FC Martigues',
 }
 
+# One club under two or more names (by era or by source), found 2026-10-26
+# by resolving every name in the games file to its Wikipedia article and
+# checking each pair that never met and never shared a league season.
+# Reserve sides ("(A)", "II") stay separate, and so do clubs that share a
+# town but not a history (AFC Wimbledon / Wimbledon FC, Real Burgos / Burgos
+# CF, GFC Ajaccio / AC Ajaccio). Logroñés, Extremadura and Mérida name two
+# clubs each in different eras of the Copa del Rey rows, so they're left
+# as they are. Old name -> the club's name.
+SPLIT_CLUB_MERGES = {
+    '1. FC Heidenheim': '1. FC Heidenheim 1846',
+    'FSV Altmark Stendal': '1. FC Lok Stendal',
+    'Lokomotive Altmark Stendal': '1. FC Lok Stendal',
+    'Lokomotive/Altmark Stendal': '1. FC Lok Stendal',
+    'FC Schweinfurt 05': '1. FC Schweinfurt 05',
+    'Schweinfurt 05': '1. FC Schweinfurt 05',
+    'FSV Mainz 05': '1. FSV Mainz 05',
+    'Cesena FC': 'AC Cesena',
+    'AC Chievo Verona': 'AC ChievoVerona',
+    'Monza Brianza': 'AC Monza',
+    'AC Perugia Calcio': 'AC Perugia',
+    'Perugia': 'AC Perugia',
+    'AC Reggiana 1919': 'AC Reggiana',
+    'Reggiana': 'AC Reggiana',
+    'Sparta Praha': 'AC Sparta Praha',
+    'Bari': 'AS Bari',
+    'SSC Bari': 'AS Bari',
+    'FC Bergedorf 85': 'ASV Bergedorf 85',
+    'Olimpik Baku': 'AZAL Baku',
+    'Albacete': 'Albacete Balompié',
+    'AltoVicentino': 'Altovicentino',
+    'Ancona': 'Ancona Calcio',
+    'Arandina': 'Arandina CF',
+    'Artmedia Bratislava': 'Artmedia Petržalka',
+    'Petrzalka Akademia': 'Artmedia Petržalka',
+    'Ascoli': 'Ascoli Calcio',
+    'Atlético Sanluqueño': 'Atlético Sanluqueño CF',
+    'BSG Stahl Brandenburg': 'BSV Brandenburg',
+    'Sibilla Flegrea': 'Bacoli Sibilla',
+    'Banik Ostrava': 'Baník Ostrava',
+    'Barry Town': 'Barry Town United',
+    'Benevento': 'Benevento Calcio',
+    'Brondby IF': 'Brøndby IF',
+    'Kispesti Honved': 'Budapest Honvéd',
+    'Burgos': 'Burgos CF',
+    'Atlético Antoniano': 'CA Antoniano',
+    'Atlético Cirbonero': 'CA Cirbonero',
+    'Alcoyano': 'CD Alcoyano',
+    'Leganés': 'CD Leganés',
+    'Marino de Los Cristianos': 'CD Marino',
+    'Mensajero': 'CD Mensajero',
+    'Numancia': 'CD Numancia',
+    'Tenerife': 'CD Tenerife',
+    'Tudelano': 'CD Tudelano',
+    'Villanovense': 'CF Villanovense',
+    'Cacereño': 'CP Cacereño',
+    'Petrocub Hîncești': 'CS Petrocub',
+    'Padova': 'Calcio Padova',
+    'Cardiff City': 'Cardiff City FC',
+    'Carpi': 'Carpi FC',
+    'Carrarese': 'Carrarese Calcio',
+    'Atlético de Madrid': 'Club Atlético de Madrid',
+    'Coruxo': 'Coruxo FC',
+    'Cádiz': 'Cádiz CF',
+    'Cordoba': 'Córdoba CF',
+    'Córdoba': 'Córdoba CF',
+    'Dagenham and Redbridge': 'Dagenham & Redbridge',
+    'Delta Porto Tolle': 'Delta Rovigo',
+    'Deportivo': 'Deportivo de La Coruña',
+    'Gravesend & Northfleet': 'Ebbsfleet United',
+    '1. SC Norderstedt': 'Eintracht Norderstedt',
+    'FC Homburg': 'FC 08 Homburg',
+    'FC Basel 1893': 'FC Basel',
+    'Crotone': 'FC Crotone',
+    'Flora Tallinn': 'FC Flora',
+    'FC Ingolstadt': 'FC Ingolstadt 04',
+    'Ingolstadt': 'FC Ingolstadt 04',
+    'Illichivets Mariupol': 'FC Mariupol',
+    'Messina': 'FC Messina',
+    'FK Rostov': 'FC Rostov',
+    'FC Schönberg': 'FC Schönberg 95',
+    'Schönberg 95': 'FC Schönberg 95',
+    'Sheriff Tiraspol': 'FC Sheriff',
+    'Singen 04': 'FC Singen 04',
+    'FC Viktoria Berlin': 'FC Viktoria 1889 Berlin',
+    'FC Zurich': 'FC Zürich',
+    'Astoria Walldorf': 'FC-Astoria Walldorf',
+    'FC Astoria Walldorf': 'FC-Astoria Walldorf',
+    'Levadia Tallinn': 'FCI Levadia',
+    'FC Steaua Bucureşti': 'FCSB',
+    'FC Krasnodar': 'FK Krasnodar',
+    'Modriča Maxima': 'FK Modrica',
+    'FK Zalgiris Vilnius': 'FK Žalgiris',
+    'Zalgiris Vilnius': 'FK Žalgiris',
+    'Optik Rathenow': 'FSV Optik Rathenow',
+    'Farnborough Town': 'Farnborough FC',
+    'Fenerbahce': 'Fenerbahçe SK',
+    'FeralpiSalò': 'Feralpisalò',
+    'Andria BAT': 'Fidelis Andria',
+    'Admira Wacker Mödling': 'Flyeralarm Admira',
+    'Gimnàstic': 'Gimnàstic de Tarragona',
+    'Gimnástica': 'Gimnástica Torrelavega',
+    'Gimnástica de Torrelavega': 'Gimnástica Torrelavega',
+    'Hampton & Richmond': 'Hampton & Richmond Borough',
+    'Hayes & Yeading': 'Hayes & Yeading United',
+    'Huddersfield': 'Huddersfield Town AFC',
+    'Huddersfield Town': 'Huddersfield Town AFC',
+    'Hércules': 'Hércules CF',
+    'Saburtalo Tbilisi': 'Iberia 1999',
+    'SSV Jahn Regensburg': 'Jahn Regensburg',
+    'SS Juve Stabia': 'Juve Stabia',
+    'Bayer Uerdingen': 'KFC Uerdingen 05',
+    'KFC Uerdingen': 'KFC Uerdingen 05',
+    'Inter Baku PIK': 'Keşla',
+    'Kingstonian': 'Kingstonian FC',
+    'Kosice': 'Košice',
+    'LASK': 'LASK Linz',
+    'Châteauroux': 'LB Châteauroux',
+    'LB Chateauroux': 'LB Châteauroux',
+    'FC Hansa Lüneburg': 'LSK Hansa',
+    'Legia Warszawa': 'Legia Warsaw',
+    'La Hoya Lorca': 'Lorca FC',
+    'Luton Town': 'Luton Town FC',
+    'MFK Ruzomberok': 'MFK Ružomberok',
+    'Videoton FC': 'MOL Fehérvár',
+    'Olimpi Rustavi': 'Metalurgi Rustavi',
+    'Modena': 'Modena FC',
+    'MSK Zilina': 'MŠK Žilina',
+    'Publikum': 'NK Celje',
+    'NK Domzale': 'NK Domžale',
+    'Post Neubrandenburg': 'Neubrandenburg 04',
+    'Nuneaton Borough AFC': 'Nuneaton Town',
+    'Náxara': 'Náxara CD',
+    'Odd Grenland': 'Odds BK',
+    'Olímpic Xàtiva': 'Olímpic',
+    'Olímpic de Xátiva': 'Olímpic',
+    'Oțelul Galați': 'Oţelul Galaţi',
+    'Peña Sport': 'Peña Sport FC',
+    'Piacenza': 'Piacenza Calcio',
+    'AC Pisa': 'Pisa SC',
+    'Pisa': 'Pisa SC',
+    'Port Vale': 'Port Vale FC',
+    'Pyunik': 'Pyunik FC',
+    'Balompédica Linense': 'RB Linense',
+    'Celta de Vigo': 'RC Celta de Vigo',
+    'RCD Espanyol': 'RCD Espanyol de Barcelona',
+    'Murcia': 'Real Murcia',
+    'Real Murcia CF': 'Real Murcia',
+    'Real Ávila': 'Real Ávila CF',
+    'Recreativo': 'Recreativo de Huelva',
+    'Recreativo Huelva': 'Recreativo de Huelva',
+    'Reggina': 'Reggina Calcio',
+    'Reggina 1914': 'Reggina Calcio',
+    'LR Ahlen': 'Rot Weiss Ahlen',
+    'Rot-Weiß Ahlen': 'Rot Weiss Ahlen',
+    'Rot Weiss Essen': 'Rot-Weiss Essen',
+    'FC Rot-Weiß Erfurt': 'Rot-Weiß Erfurt',
+    'Rot-Weiss Erfurt': 'Rot-Weiß Erfurt',
+    'Rot-Weiss Oberhausen': 'Rot-Weiß Oberhausen',
+    'FK Rudar Pljevlja': 'Rudar Pljevlja',
+    'SC Paderborn': 'SC Paderborn 07',
+    'TuS Paderborn-Neuhaus': 'SC Paderborn 07',
+    'SC Wiedenbrück 2000': 'SC Wiedenbrück',
+    'Compostela': 'SD Compostela',
+    'Huesca': 'SD Huesca',
+    'Ponferradina': 'SD Ponferradina',
+    'SG Wattenscheid': 'SG Wattenscheid 09',
+    'Wattenscheid 09': 'SG Wattenscheid 09',
+    'S.P.A.L.': 'SPAL',
+    'SPAL 2013 Ferrara': 'SPAL',
+    'Elversberg': 'SV 07 Elversberg',
+    'SV Elversberg': 'SV 07 Elversberg',
+    'SV Straelen': 'SV 19 Straelen',
+    'SV Mettlach': 'SV 1920 Mettlach',
+    'SV Babelsberg': 'SV Babelsberg 03',
+    'Darmstadt 98': 'SV Darmstadt 98',
+    'SV Wehen': 'SV Wehen Wiesbaden',
+    'Wehen Wiesbaden': 'SV Wehen Wiesbaden',
+    'SV Niederauerbach': 'SVN Zweibrücken',
+    'FC Sachsen Leipzig': 'Sachsen Leipzig',
+    'Unione Sanremo': 'Sanremese',
+    'BSV Schwarz-Weiß Rehden': 'Schwarz-Weiß Rehden',
+    'Servette Geneve': 'Servette FC',
+    'Greuther Furth': 'SpVgg Greuther Fürth',
+    'Greuther Fürth': 'SpVgg Greuther Fürth',
+    'SpVgg Fürth': 'SpVgg Greuther Fürth',
+    'Spezia': 'Spezia Calcio',
+    'Sporting Gijón': 'Sporting de Gijón',
+    'St Albans City': 'St. Albans City',
+    'Stabaek': 'Stabæk',
+    'Standard Liege': 'Standard Liège',
+    'Stevenage Borough': 'Stevenage FC',
+    'Swansea City': 'Swansea City AFC',
+    '1860 Munich': 'TSV 1860 München',
+    '1860 München': 'TSV 1860 München',
+    'Ternana': 'Ternana Calcio',
+    'Total Network Solutions': 'The New Saints',
+    'Mladost Podgorica': 'Titograd Podgorica',
+    'Torpedo Zhodino': 'Torpedo-BelAZ Zhodino',
+    'Treviso': 'Treviso FBC',
+    'Conquense': 'UB Conquense',
+    'AlbinoLeffe': 'UC AlbinoLeffe',
+    'Almería': 'UD Almería',
+    'Mutilvera': 'UD Mutilvera',
+    'Poblense': 'UD Poblense',
+    'Salamanca': 'UD Salamanca',
+    'Lleida': 'UE Lleida',
+    'Palermo FC': 'US Città di Palermo',
+    'Foggia': 'US Foggia',
+    'Foggia Calcio': 'US Foggia',
+    'Triestina': 'US Triestina',
+    'Unionistas': 'Unionistas CF',
+    '1. FC Lok Leipzig': 'VfB Leipzig',
+    'L.R. Vicenza': 'Vicenza Calcio',
+    'L.R. Vicenza Virtus': 'Vicenza Calcio',
+    'Vicenza': 'Vicenza Calcio',
+    'FC Viktoria Köln': 'Viktoria Köln',
+    'Vitória SC': 'Vitória Guimarães',
+    'Valerenga IF': 'Vålerenga IF',
+    'SV Waldhof Mannheim': 'Waldhof Mannheim',
+    'Weston-Super-Mare': 'Weston-super-Mare',
+    'Worksop Town': 'Worksop Town FC',
+    'Wuppertaler SV Borussia': 'Wuppertaler SV',
+    'Xerez': 'Xerez CD',
+    'Yeclano': 'Yeclano Deportivo',
+    'Olimpia Bălți': 'Zaria Bălți',
+    'IA Akranes': 'ÍA',
+    'Ujpesti Dozsa SC': 'Újpest FC',
+    'SK Slovan Bratislava': 'ŠK Slovan Bratislava',
+}
+
+
+def clean_team_name(name):
+    """Source artifacts: non-breaking spaces, a forfeit's "[awarded]" tag."""
+    name = re.sub(r'\s*\[awarded\]\s*$', '', name.replace('\xa0', ' '))
+    return re.sub(r'\s+', ' ', name).strip()
+
+
+def canonical_team(name):
+    """A stored or normalized name -> the club's one name."""
+    name = clean_team_name(name)
+    name = TEAM_NAME_MAP.get(name, name)
+    return SPLIT_CLUB_MERGES.get(name, name)
+
+
 def normalize_team(raw_name):
     # Strip country code: "Arsenal FC (ENG)" → "Arsenal FC"
-    name = re.sub(r'\s*\([A-Z]{2,3}\)\s*$', '', raw_name).strip()
-    return TEAM_NAME_MAP.get(name, name)
+    name = re.sub(r'\s*\([A-Z]{2,3}\)\s*$', '', clean_team_name(raw_name)).strip()
+    return canonical_team(name)
+
+
+def fix_awarded_rows(frame):
+    """Forfeits that parsed with both clubs in home_team ("Villarreal CF
+    (ESP) v Qarabağ FK") and "[awarded]" as away_team: split them back out."""
+    bad = frame['away_team'].astype(str).str.strip().eq('[awarded]') & frame['home_team'].astype(str).str.contains(' v ')
+    for i in frame.index[bad]:
+        h, a = frame.at[i, 'home_team'].split(' v ', 1)
+        frame.at[i, 'home_team'] = normalize_team(h)
+        frame.at[i, 'away_team'] = normalize_team(a)
+    return frame
 
 # ============================================================
 # STEP 1 - LOAD DOMESTIC LEAGUE JSON
 # ============================================================
 # Schema: { "name": "...", "matches": [ { "round", "date", "time",
 #           "team1", "team2", "score": { "ht": [h,a], "ft": [h,a] } } ] }
+
+# League kickoffs (UTC) seen this run, {(date, home, away): ISO}, saved to
+# league_kickoffs.csv for Daily Matchups: football-data.co.uk's Time column
+# (UK time, published from 2019-20) and football-data.org's utcDate.
+LEAGUE_KICKOFFS = {}
+
+
+def _uk_kickoff(date_str, time_str):
+    t = str(time_str).strip()
+    if not re.match(r'^\d{1,2}:\d{2}$', t):
+        return None
+    local = pd.Timestamp(f"{date_str} {t}").tz_localize('Europe/London', ambiguous='NaT', nonexistent='NaT')
+    return None if pd.isna(local) else local.tz_convert('UTC').strftime('%Y-%m-%dT%H:%MZ')
+
 
 def load_domestic_fdco(season, leagues=None):
     # football-data.co.uk season code: "2011-12" → "1112"
@@ -1241,7 +1511,7 @@ def load_domestic_fdco(season, leagues=None):
                 continue
             df_csv = pd.read_csv(
                 io.StringIO(r.text),
-                usecols=lambda c: c in ['Date', 'HomeTeam', 'AwayTeam', 'FTHG', 'FTAG'],
+                usecols=lambda c: c in ['Date', 'Time', 'HomeTeam', 'AwayTeam', 'FTHG', 'FTAG'],
                 dtype={'FTHG': 'Int64', 'FTAG': 'Int64'},
             )
             df_csv = df_csv.dropna(subset=['HomeTeam', 'AwayTeam', 'FTHG', 'FTAG'])
@@ -1250,6 +1520,12 @@ def load_domestic_fdco(season, leagues=None):
                     parsed_date = pd.to_datetime(m['Date'], dayfirst=True)
                 except Exception:
                     continue
+                if 'Time' in m.index:
+                    ko = _uk_kickoff(parsed_date.strftime('%Y-%m-%d'), m['Time'])
+                    if ko:
+                        LEAGUE_KICKOFFS[(parsed_date.strftime('%Y-%m-%d'),
+                                         normalize_team(str(m['HomeTeam']).strip()),
+                                         normalize_team(str(m['AwayTeam']).strip()))] = ko
                 rows.append({
                     'date':            parsed_date.strftime('%Y-%m-%d'),
                     'home_team':       normalize_team(str(m['HomeTeam']).strip()),
@@ -1724,6 +2000,48 @@ FDA_BASE = 'https://api.football-data.org/v4'
 
 # Unplayed CL fixtures for the current season, written to cl_schedule.csv.
 CL_SCHEDULE = []
+# Unplayed Big-5 league fixtures for the current season, written to
+# league_schedule.csv (Daily Matchups' next-day preview).
+LEAGUE_SCHEDULE = []
+FDA_LEAGUE_CODES = {'EPL': 'PL', 'La Liga': 'PD', 'Serie A': 'SA', 'Bundesliga': 'BL1', 'Ligue 1': 'FL1'}
+# football-data.org's names for clubs whose league name differs.
+FDA_LEAGUE_NAME_FIX = {
+    'ES Troyes AC': 'ESTAC Troyes', 'RC Deportivo La Coruña': 'Deportivo de La Coruña',
+    'Real Racing Club de Santander': 'Racing de Santander',
+}
+
+
+def load_league_schedule_fda(season):
+    """Current-season Big-5 league fixtures from football-data.org: the
+    unplayed ones (with kickoff) to LEAGUE_SCHEDULE, every kickoff to
+    LEAGUE_KICKOFFS. Dates are the local (Paris) match day."""
+    api_key = os.environ.get('FOOTBALL_DATA_KEY')
+    if not api_key:
+        return
+    for league, code in FDA_LEAGUE_CODES.items():
+        try:
+            r = requests.get(f'{FDA_BASE}/competitions/{code}/matches', headers={'X-Auth-Token': api_key},
+                             params={'season': int(season[:4])}, timeout=20)
+        except Exception as e:
+            print(f"  Warning: FDA fetch failed for {league} fixtures: {e}")
+            continue
+        if r.status_code != 200:
+            print(f"  Warning: FDA HTTP {r.status_code} for {league} fixtures")
+            continue
+        for m in r.json().get('matches', []):
+            h, a = (m.get('homeTeam') or {}).get('name'), (m.get('awayTeam') or {}).get('name')
+            if not h or not a or not m.get('utcDate'):
+                continue
+            ts = pd.Timestamp(m['utcDate'])
+            day = ts.tz_convert('Europe/Paris').strftime('%Y-%m-%d')
+            ko = ts.tz_convert('UTC').strftime('%Y-%m-%dT%H:%MZ')
+            h = FDA_LEAGUE_NAME_FIX.get(h) or normalize_team(h)
+            a = FDA_LEAGUE_NAME_FIX.get(a) or normalize_team(a)
+            LEAGUE_KICKOFFS[(day, h, a)] = ko
+            if m.get('status') in ('SCHEDULED', 'TIMED'):
+                LEAGUE_SCHEDULE.append({'date': day, 'kickoff': ko, 'home_team': h, 'away_team': a,
+                                        'competition': league})
+        time.sleep(6)       # free tier: 10 requests a minute
 
 
 def load_european_from_fda(season, competition_label, fda_code):
@@ -2026,6 +2344,10 @@ for season in ALL_SEASONS:
             all_rows.extend(load_cup_historical(season, cup_name))
 
 df = pd.DataFrame(all_rows)
+df = fix_awarded_rows(df)
+for _c in ('home_team', 'away_team', 'shootout_winner'):
+    if _c in df:
+        df[_c] = df[_c].map(lambda n: canonical_team(n) if isinstance(n, str) else n)
 df['date'] = pd.to_datetime(df['date'])
 df.sort_values('date', inplace=True)
 df.reset_index(drop=True, inplace=True)
@@ -2047,11 +2369,12 @@ if os.path.exists('all_club_games.csv'):
     _prev = pd.read_csv('all_club_games.csv')
     _prev['date'] = pd.to_datetime(_prev['date'], errors='coerce')
     # Stored rows carry the names from when they were saved; re-map them so a
-    # TEAM_NAME_MAP change renames history instead of duplicating every game
-    # under the old and new names.
+    # TEAM_NAME_MAP / SPLIT_CLUB_MERGES change renames history instead of
+    # duplicating every game under the old and new names.
+    _prev = fix_awarded_rows(_prev)
     for _c in ('home_team', 'away_team', 'shootout_winner'):
         if _c in _prev:
-            _prev[_c] = _prev[_c].map(lambda n: TEAM_NAME_MAP.get(n, n) if isinstance(n, str) else n)
+            _prev[_c] = _prev[_c].map(lambda n: canonical_team(n) if isinstance(n, str) else n)
     _key = ['date', 'home_team', 'away_team']
     _fresh = df.copy();  _fresh['_src_priority'] = 0
     _prevp = _prev.copy(); _prevp['_src_priority'] = 1
@@ -2081,6 +2404,17 @@ print(f"Master game file saved: {len(df)} rows")
 pd.DataFrame(CL_SCHEDULE, columns=['date', 'home_team', 'away_team', 'stage', 'comp_season']) \
     .to_csv('cl_schedule.csv', index=False)
 print(f"CL fixtures still to play: {len(CL_SCHEDULE)}")
+load_league_schedule_fda(f"{_cur_start}-{str(_cur_start + 1)[-2:]}")
+pd.DataFrame(LEAGUE_SCHEDULE, columns=['date', 'kickoff', 'home_team', 'away_team', 'competition']) \
+    .to_csv('league_schedule.csv', index=False)
+print(f"League fixtures still to play: {len(LEAGUE_SCHEDULE)}")
+_ko = pd.DataFrame([(d, h, a, k) for (d, h, a), k in LEAGUE_KICKOFFS.items()],
+                   columns=['date', 'home_team', 'away_team', 'kickoff'])
+if os.path.exists('league_kickoffs.csv'):
+    _ko = pd.concat([pd.read_csv('league_kickoffs.csv'), _ko], ignore_index=True)
+_ko.drop_duplicates(['date', 'home_team', 'away_team'], keep='last').sort_values(['date', 'home_team']) \
+    .to_csv('league_kickoffs.csv', index=False)
+print(f"League kickoffs on file: {_ko.drop_duplicates(['date', 'home_team', 'away_team']).shape[0]:,}")
 
 # Label UCL knockout games via bracket walk (post-data-assembly, pre-ratings).
 print("Labelling UCL knockout games via bracket walk...")
