@@ -744,3 +744,36 @@ with open('docs/data/champions.json', 'w') as f:
 
 print(f"Done. {len(teams_index)} teams, {len(standings_data['teams'])} in current standings.")
 print(f"Wrote {len(all_seasons)} season files. Standings date: {latest_date}")
+
+# ── Daily Matchups (docs/data/daily_matchups/) ───────────────────────────────
+# Every Big-5 league match (1992-93 on) and Champions League match (2003-04
+# on) of a day from the ratings going into it: home / draw / away
+# probabilities, line, O/U, and each club's title, relegation, CL
+# qualification (2024-25 on) or CL winner odds with a win, a draw, and a
+# loss. Finished league and CL seasons are cached (daily_matchups.py); the
+# live season previews only its next match day.
+import daily_matchups
+
+print("Writing daily_matchups/...")
+_dm_ratings = pd.read_csv('zidane_ratings_final.csv.gz', usecols=['date', 'team', 'rating', 'rank', 'rating_o', 'rating_d'])
+_dm_kick = {}
+if os.path.exists('league_kickoffs.csv'):
+    _k = pd.read_csv('league_kickoffs.csv')
+    _dm_kick = {(pd.Timestamp(d), h, a): t for d, h, a, t in _k[['date', 'home_team', 'away_team', 'kickoff']].itertuples(index=False)}
+_dm_lsched = pd.read_csv('league_schedule.csv') if os.path.exists('league_schedule.csv') else None
+_dm_league, _dm_cur = daily_matchups.build_cached(_lo_games, _dm_ratings, _dm_lsched, _dm_kick)
+_dm_all = daily_matchups.merge_by_season(_dm_league)
+for _s, _days in daily_matchups.build_cl_cached(_lo_games, _dm_ratings, _sched, _dm_kick).items():
+    _by = {d['date']: d['games'] for d in _dm_all.get(_s, [])}
+    for _d in _days:
+        _by.setdefault(_d['date'], []).extend(_d['games'])
+    _dm_all[_s] = [{'date': d, 'games': g} for d, g in sorted(_by.items())]
+_dm_all = {s: d for s, d in _dm_all.items() if d}
+daily_matchups.add_juice(_dm_all, {s for s in _dm_all if s != _dm_cur})
+os.makedirs('docs/data/daily_matchups', exist_ok=True)
+for _s, _days in _dm_all.items():
+    with open(f'docs/data/daily_matchups/{_s}.json', 'w') as f:
+        json.dump({'season': _s, 'days': _days}, f, separators=(',', ':'))
+with open('docs/data/daily_matchups/index.json', 'w') as f:
+    json.dump({'seasons': sorted(_dm_all, reverse=True), 'live_season': _dm_cur}, f, separators=(',', ':'))
+print(f"  {len(_dm_all)} seasons of daily matchups written")

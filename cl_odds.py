@@ -158,6 +158,7 @@ class Sim:
         E = rng.normal(0, sd, size=(N_SIMS, n)) if sd > 0 else np.zeros((N_SIMS, n))
         self.O, self.D, self.E = O, D, E
         self.hfa = hfa_for(self.date)
+        self.cap = None       # Daily Matchups: {(home, away): (home goals, away goals)} per sim
 
     def lam(self, att, dfn, edge):
         """Poisson mean per sim for att (index array, per sim) vs dfn."""
@@ -170,7 +171,10 @@ class Sim:
         e = 0.0 if neutral else self.hfa / 2
         f = ET_FACTOR if et else 1.0
         z = self.rng.poisson(DRAW_LAMBDA * f, N_SIMS)
-        return (self.rng.poisson(self.lam(h, a, e) * f) + z, self.rng.poisson(self.lam(a, h, -e) * f) + z)
+        gh, ga = self.rng.poisson(self.lam(h, a, e) * f) + z, self.rng.poisson(self.lam(a, h, -e) * f) + z
+        if self.cap is not None and not et and np.all(h == h[0]) and np.all(a == a[0]):
+            self.cap.setdefault((self.teams[h[0]], self.teams[a[0]]), (gh.astype(np.int16), ga.astype(np.int16)))
+        return gh, ga
 
     def tie(self, a, b, legs, single=False, final=False):
         """Winner per sim of a tie between a (hosts the second leg) and b.
@@ -282,19 +286,24 @@ def _draw_r16(sim, winners, runners, group_of):
     return out
 
 
-def odds_at(season, strength, date, schedule, country):
-    """{team: P(win the CL)} after the matches of `date`."""
+def odds_at(season, strength, date, schedule, country, capture=None):
+    """{team: P(win the CL)} after the matches of `date`. capture: an
+    optional dict filled with per-simulation results (Daily Matchups); draws
+    no extra random numbers, so the odds are unchanged."""
     date = pd.Timestamp(date)
     s = season
     rng = np.random.default_rng(int(date.strftime('%Y%m%d')))
     played_phase = s.phase[s.phase['date'] <= date]
     fut = s.phase[s.phase['date'] > date]
+    # Remaining phase fixtures: the matches after `date`, plus (current
+    # season) the scheduled ones not played yet. Before 2026-10-26 a
+    # current-season date took only the scheduled fixtures, leaving out the
+    # matches played between it and today.
+    remaining = list(zip(fut['home_team'], fut['away_team']))
     sched = schedule[schedule['date'] > date] if schedule is not None else None
     if sched is not None and len(sched):
         ph_sched = sched[sched['stage'].isin(['GROUP_STAGE', 'LEAGUE_STAGE'])]
-        remaining = list(zip(ph_sched['home_team'], ph_sched['away_team']))
-    else:
-        remaining = list(zip(fut['home_team'], fut['away_team']))
+        remaining += list(zip(ph_sched['home_team'], ph_sched['away_team']))
     rounds = s.ko_rounds()
     ko_played = s.ko[s.ko['date'] <= date]
     total = len(s.phase) + len(s.ko) + len(remaining) + 1
@@ -302,6 +311,8 @@ def odds_at(season, strength, date, schedule, country):
     fixtures = remaining
     sim = Sim(s, strength, date, fixtures, rng, frac_left)
     sim.country = country
+    if capture is not None:
+        sim.cap = capture.setdefault('matches', {})
     S = N_SIMS
     played = list(zip(played_phase['home_team'], played_phase['away_team'],
                       played_phase['home_score'], played_phase['away_score']))
@@ -374,6 +385,8 @@ def odds_at(season, strength, date, schedule, country):
     # isn't in the data, so later rounds are drawn openly.
     open_draw = (not s.league_phase) or bool(real_pairs(1))
     champs = _play_out(sim, s, nxt, rounds_left, real_pairs, single_from, open_draw=open_draw)
+    if capture is not None:
+        capture.update(teams=sim.teams, champ=champs, E=sim.E, O=sim.O, D=sim.D, hfa=sim.hfa)
     p = np.bincount(champs, minlength=len(sim.teams)) / S
     return {t: float(p[i]) for t, i in sim.idx.items() if t in set(s.teams)}
 

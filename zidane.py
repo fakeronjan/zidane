@@ -2075,7 +2075,8 @@ def load_european_from_fda(season, competition_label, fda_code):
                 CL_SCHEDULE.append({'date': m['utcDate'][:10],
                                     'home_team': normalize_team(m['homeTeam']['name']),
                                     'away_team': normalize_team(m['awayTeam']['name']),
-                                    'stage': m.get('stage', ''), 'comp_season': season})
+                                    'stage': m.get('stage', ''), 'comp_season': season,
+                                    'kickoff': pd.Timestamp(m['utcDate']).tz_convert('UTC').strftime('%Y-%m-%dT%H:%MZ')})
             continue
         ft = (m.get('score') or {}).get('fullTime') or {}
         gh, ga = ft.get('home'), ft.get('away')
@@ -2083,6 +2084,8 @@ def load_european_from_fda(season, competition_label, fda_code):
             continue
         home = normalize_team(m['homeTeam']['name'])
         away = normalize_team(m['awayTeam']['name'])
+        LEAGUE_KICKOFFS[(m['utcDate'][:10], home, away)] = \
+            pd.Timestamp(m['utcDate']).tz_convert('UTC').strftime('%Y-%m-%dT%H:%MZ')   # CL kickoffs too
         duration = (m.get('score') or {}).get('duration', 'REGULAR')
         shootout_winner = None
         if duration == 'PENALTY_SHOOTOUT':
@@ -2401,7 +2404,7 @@ df = df.drop_duplicates(subset=['date', 'home_team', 'away_team'], keep='first')
 
 df.to_csv('all_club_games.csv', index=False)
 print(f"Master game file saved: {len(df)} rows")
-pd.DataFrame(CL_SCHEDULE, columns=['date', 'home_team', 'away_team', 'stage', 'comp_season']) \
+pd.DataFrame(CL_SCHEDULE, columns=['date', 'home_team', 'away_team', 'stage', 'comp_season', 'kickoff']) \
     .to_csv('cl_schedule.csv', index=False)
 print(f"CL fixtures still to play: {len(CL_SCHEDULE)}")
 load_league_schedule_fda(f"{_cur_start}-{str(_cur_start + 1)[-2:]}")
