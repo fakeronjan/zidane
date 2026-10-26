@@ -140,15 +140,19 @@ class SeasonSim:
             D[i] = PROMOTED_PRIOR if np.isnan(d) else d
         return O, D
 
-    def odds_at(self, date, mu, rng):
-        """{team: (title prob, relegation prob)} after the matches of `date`."""
+    def odds_at(self, date, mu, rng, capture=None):
+        """{team: (title prob, relegation prob)} after the matches of `date`.
+        capture: an optional dict filled with per-simulation results (Daily
+        Matchups). Draws no extra random numbers, so the odds are unchanged."""
         date = pd.Timestamp(date)
         done = self.games[self.games['date'] <= date]
-        if self.complete:
-            later = self.games[self.games['date'] > date]
-            fixtures = list(zip(later['home_team'], later['away_team']))
-        else:
-            fixtures = self.unplayed
+        # Remaining fixtures: the matches after `date`, plus (current season)
+        # every pairing not played yet. Before 2026-10-26 a current-season
+        # date left out the matches played between it and today.
+        later = self.games[self.games['date'] > date]
+        fixtures = list(zip(later['home_team'], later['away_team']))
+        if not self.complete:
+            fixtures += self.unplayed
         n, S = len(self.teams), N_SIMS
         pts = np.zeros(n); gd = np.zeros(n); gf = np.zeros(n)
         h2h_p = np.zeros((n, n)); h2h_g = np.zeros((n, n))
@@ -175,6 +179,8 @@ class SeasonSim:
             z = rng.poisson(DRAW_LAMBDA, size=lam_h.shape)
             hg = rng.poisson(np.clip(lam_h, 0.02, None)) + z
             ag = rng.poisson(np.clip(lam_a, 0.02, None)) + z
+            if capture is not None:
+                capture.update(fixtures=fixtures, hg=hg.astype(np.int16), ag=ag.astype(np.int16), E=E)
             ph = np.where(hg > ag, self.win, np.where(hg == ag, 1, 0))
             pa = np.where(ag > hg, self.win, np.where(hg == ag, 1, 0))
             for m in range(len(fixtures)):
@@ -195,6 +201,9 @@ class SeasonSim:
         order = np.argsort(-key, axis=1, kind='stable')
         pos = np.empty_like(order); pos[np.arange(S)[:, None], order] = np.arange(1, n + 1)
         direct, playoff, p_down = relegation_rule(self.league, self.season)
+        if capture is not None:
+            capture.update(teams=self.teams, pos=pos.astype(np.int16), PTS=PTS, direct=direct,
+                           playoff=playoff, p_down=p_down, places=cl_places(self.league, self.season))
         title = (pos == 1).mean(axis=0)
         releg = np.isin(pos, direct).mean(axis=0) + p_down * np.isin(pos, playoff).mean(axis=0)
         places = cl_places(self.league, self.season)
